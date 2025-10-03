@@ -5,11 +5,31 @@ import SidebarEmpleado from "../components/Sidebar-personal";
 import { FaCheckCircle, FaClock, FaTimesCircle, FaChevronLeft, FaChevronRight, FaCalendarAlt } from "react-icons/fa";
 import { useTheme } from "../components/ThemeContext";
 
-const asistenciasData = [
-  { fecha: "2024-07-05", ingreso: "08:00 AM", salida: "05:00 PM", estado: "Puntual", horas: 9 },
-  { fecha: "2024-07-04", ingreso: "01:00 PM", salida: "06:00 PM", estado: "Tardanza", horas: 5 },
-  { fecha: "2024-07-03", ingreso: "-", salida: "-", estado: "Falta", horas: 0 }
-];
+// Datos simulados de asistencias por fecha
+const asistenciasData: Record<string, Array<{ ingreso: string; salida: string; estado: string; horas: number }>> = {
+  "2024-10-01": [
+    { ingreso: "08:00 AM", salida: "05:00 PM", estado: "Puntual", horas: 9 }
+  ],
+  "2024-10-02": [
+    { ingreso: "07:58 AM", salida: "01:00 PM", estado: "Puntual", horas: 5 },
+    { ingreso: "02:45 PM", salida: "08:30 PM", estado: "Puntual", horas: 6 }
+  ],
+  "2024-10-03": [
+    { ingreso: "08:00 AM", salida: "05:00 PM", estado: "Puntual", horas: 9 }
+  ],
+  "2024-10-04": [
+    { ingreso: "08:15 AM", salida: "05:00 PM", estado: "Tardanza", horas: 9 }
+  ],
+  "2024-10-05": [
+    { ingreso: "08:00 AM", salida: "05:00 PM", estado: "Puntual", horas: 9 }
+  ],
+  "2024-10-06": [
+    { ingreso: "-", salida: "-", estado: "Falta", horas: 0 }
+  ],
+  "2024-10-07": [
+    { ingreso: "08:00 AM", salida: "05:00 PM", estado: "Puntual", horas: 9 }
+  ]
+};
 
 const meses = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -26,6 +46,7 @@ export default function AsistenciasPersonal() {
   const [rangoFin, setRangoFin] = useState<number | null>(null);
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [diaSeleccionado, setDiaSeleccionado] = useState<Date>(new Date());
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -103,8 +124,8 @@ export default function AsistenciasPersonal() {
   const esHoy = (dia: number | null) =>
     dia === hoy.getDate() && mesActual === hoy.getMonth() && anoActual === hoy.getFullYear();
 
-  const cardBgs = isDarkMode ? ["#1e40af", "#7c6f10", "#7f1d1d"] : ["#e0f2fe", "#fef3c7", "#fee2e2"];
-  const cardIconColors = isDarkMode ? ["#bfdbfe", "#facc15", "#fca5a5"] : ["#0284c7", "#b45309", "#b91c1c"];
+  const cardBgs = isDarkMode ? ["#1e3a8a", "#854d0e", "#991b1b"] : ["#dbeafe", "#fef3c7", "#fee2e2"];
+  const cardIconColors = isDarkMode ? ["#93c5fd", "#fbbf24", "#fca5a5"] : ["#1e40af", "#b45309", "#b91c1c"];
   const headerText = isDarkMode ? "#f9fafb" : "#1e293b";
   const subText = isDarkMode ? "#cbd5e1" : "#64748b";
 
@@ -112,13 +133,27 @@ export default function AsistenciasPersonal() {
     const bgColor = isDarkMode ? "rgba(255 255 255 / 0.1)" : "#f3f4f6";
     let color = isDarkMode ? "#a1b8df" : "#374151";
     switch (estado) {
-      case "Puntual": color = isDarkMode ? "#bfdbfe" : "#166534"; break;
-      case "Tardanza": color = isDarkMode ? "#facc15" : "#92400e"; break;
+      case "Puntual": color = isDarkMode ? "#86efac" : "#166534"; break;
+      case "Tardanza": color = isDarkMode ? "#fbbf24" : "#92400e"; break;
       case "Falta": color = isDarkMode ? "#fca5a5" : "#991b1b"; break;
     }
     return { backgroundColor: bgColor, color };
   };
 
+  const formatearFecha = (fecha: Date) => {
+    const dia = fecha.getDate();
+    const mes = meses[fecha.getMonth()];
+    return `${dia} de ${mes}`;
+  };
+
+  const obtenerAsistenciasDelDia = (fecha: Date) => {
+    const fechaStr = fecha.toISOString().split('T')[0];
+    return asistenciasData[fechaStr] || [];
+  };
+
+  const seleccionarDiaSemana = (fecha: Date) => {
+    setDiaSeleccionado(fecha);
+  };
 
   return (
     <div style={{ display: "flex", height: "100vh", backgroundColor: isDarkMode ? "#111827" : "#f8fafc" }}>
@@ -135,7 +170,8 @@ export default function AsistenciasPersonal() {
             display: "grid",
             gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
             gap: isMobile ? "12px" : "24px",
-            marginBottom: isMobile ? "16px" : "32px"
+            marginBottom: isMobile ? "16px" : "32px",
+            marginTop: isMobile ? "60px" : "0"
           }}>
             {[0, 1, 2].map((idx) => {
               const labels = ["Asistencias", "Tardanzas", "Faltas"];
@@ -285,16 +321,33 @@ export default function AsistenciasPersonal() {
                 }}>
                   {semanaActual.map((fecha, index) => {
                     const esHoyReal = fecha.toDateString() === new Date().toDateString();
+                    const esDiaSeleccionado = fecha.toDateString() === diaSeleccionado.toDateString();
                     const diaNombre = diasSemana[fecha.getDay()];
                     return (
-                      <div key={index} style={{
+                      <div 
+                        key={index} 
+                        onClick={() => seleccionarDiaSemana(fecha)}
+                        style={{
                         textAlign: "center",
                         padding: isMobile ? "10px 6px" : "16px 12px",
                         borderRadius: "8px",
-                        backgroundColor: esHoyReal ? "#2563eb" : (isDarkMode ? "rgba(3,19,54,0.22)" : "#f9fafb"),
-                        border: esHoyReal ? "1.7px solid #2563eb" : (isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e5e7eb"),
-                        color: esHoyReal ? "#fff" : subText,
-                      }}>
+                        backgroundColor: esDiaSeleccionado ? "#2563eb" : (isDarkMode ? "rgba(3,19,54,0.22)" : "#f9fafb"),
+                        border: esHoyReal ? "1.7px solid #3b82f6" : (isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e5e7eb"),
+                        color: esDiaSeleccionado ? "#fff" : subText,
+                        cursor: "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!esDiaSeleccionado) {
+                          e.currentTarget.style.backgroundColor = isDarkMode ? "rgba(37, 99, 235, 0.2)" : "#e0f2fe";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!esDiaSeleccionado) {
+                          e.currentTarget.style.backgroundColor = isDarkMode ? "rgba(3,19,54,0.22)" : "#f9fafb";
+                        }
+                      }}
+                      >
                         <div style={{ fontSize: isMobile ? "10px" : "12px", fontWeight: "500", marginBottom: "4px" }}>
                           {isMobile ? diaNombre.substring(0, 1) : diaNombre}
                         </div>
@@ -425,9 +478,18 @@ export default function AsistenciasPersonal() {
                 color: headerText,
                 margin: "0 0 16px 0"
               }}>
-                Resumen: {rangoInicio ? `${rangoInicio} al ${rangoFin || rangoInicio} de ${meses[mesActual]}` : "5 de Julio"}
+                Resumen: {formatearFecha(diaSeleccionado)}
               </h3>
-              {!isMobile ? (
+              {obtenerAsistenciasDelDia(diaSeleccionado).length === 0 ? (
+                <div style={{
+                  padding: "32px",
+                  textAlign: "center",
+                  color: subText,
+                  fontSize: "14px"
+                }}>
+                  No hay registros de asistencia para este día
+                </div>
+              ) : !isMobile ? (
                 <div style={{
                   border: isDarkMode ? "1px solid #334155" : "1px solid #e5e7eb",
                   borderRadius: "8px",
@@ -450,14 +512,14 @@ export default function AsistenciasPersonal() {
                     <div>Estado</div>
                     <div>Horas</div>
                   </div>
-                  {asistenciasData.map((asistencia, index) => (
+                  {obtenerAsistenciasDelDia(diaSeleccionado).map((asistencia, index) => (
                     <div
                       key={index}
                       style={{
                         display: "grid",
                         gridTemplateColumns: "1fr 1fr 1fr 1fr",
                         padding: "16px 20px",
-                        borderBottom: index < asistenciasData.length - 1 ? (isDarkMode ? "1px solid #232a3a" : "1px solid #f3f4f6") : "none",
+                        borderBottom: index < obtenerAsistenciasDelDia(diaSeleccionado).length - 1 ? (isDarkMode ? "1px solid #232a3a" : "1px solid #f3f4f6") : "none",
                         alignItems: "center",
                         color: headerText
                       }}
@@ -487,7 +549,7 @@ export default function AsistenciasPersonal() {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  {asistenciasData.map((asistencia, index) => (
+                  {obtenerAsistenciasDelDia(diaSeleccionado).map((asistencia, index) => (
                     <div
                       key={index}
                       style={{

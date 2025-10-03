@@ -1,35 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import SidebarEmpleado from "../components/Sidebar-personal";
 import { FaPlus, FaTimes, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+
+// Importar desde tus componentes reales
 import { useTheme } from "../components/ThemeContext";
-
-const actividadesData = {
-  hoy: [
-    { id: 1, titulo: "Reunión con el equipo de marketing", completada: false },
-    { id: 2, titulo: "Preparar informe de ventas", completada: false },
-    { id: 3, titulo: "Seguimiento de clientes potenciales", completada: false }
-  ],
-  completadas: [
-    { id: 4, titulo: "Enviar propuesta a cliente", completada: true },
-    { id: 5, titulo: "Revisar campaña publicitaria", completada: true }
-  ]
-};
-
-const tareasPorFecha: { [key: string]: Array<{ id: number; titulo: string; completada: boolean }> } = {
-  "2025-9-29": [
-    { id: 1, titulo: "Reunión con el equipo de marketing", completada: true },
-    { id: 2, titulo: "Preparar informe de ventas", completada: false }
-  ],
-  "2025-9-30": [
-    { id: 3, titulo: "Seguimiento de clientes potenciales", completada: true }
-  ],
-  "2025-10-1": [
-    { id: 4, titulo: "Enviar propuesta a cliente", completada: true },
-    { id: 5, titulo: "Revisar campaña publicitaria", completada: true }
-  ]
-};
+import SidebarEmpleado from "../components/Sidebar-personal";
 
 const meses = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -43,13 +19,15 @@ export default function Actividades() {
 
   const [showModal, setShowModal] = useState(false);
   const [nuevaTarea, setNuevaTarea] = useState("");
-  const [tareasHoy, setTareasHoy] = useState(actividadesData.hoy);
-  const [tareasCompletadas, setTareasCompletadas] = useState(actividadesData.completadas);
   const [mesActual, setMesActual] = useState(new Date().getMonth());
   const [anoActual, setAnoActual] = useState(new Date().getFullYear());
   const [diaSeleccionado, setDiaSeleccionado] = useState(new Date().getDate());
   const [isMobile, setIsMobile] = useState(false);
-  const [tareasDelDia, setTareasDelDia] = useState<Array<{ id: number; titulo: string; completada: boolean }>>(actividadesData.hoy);
+  
+  // Objeto para almacenar todas las tareas por fecha
+  const [todasLasTareas, setTodasLasTareas] = useState<{
+    [key: string]: Array<{ id: number; titulo: string; completada: boolean }>
+  }>({});
 
   useEffect(() => {
     const checkMobile = () => {
@@ -90,10 +68,17 @@ export default function Actividades() {
 
   const seleccionarDia = (dia: number) => {
     setDiaSeleccionado(dia);
-    const fechaKey = `${anoActual}-${mesActual + 1}-${dia}`;
-    const tareasDelDiaSeleccionado = tareasPorFecha[fechaKey] || [];
-    setTareasDelDia(tareasDelDiaSeleccionado);
   };
+
+  // Obtener la clave de fecha para el día seleccionado
+  const getFechaKey = (dia: number, mes: number, ano: number) => {
+    return `${ano}-${mes + 1}-${dia}`;
+  };
+
+  const fechaSeleccionadaKey = getFechaKey(diaSeleccionado, mesActual, anoActual);
+  const tareasDelDia = todasLasTareas[fechaSeleccionadaKey] || [];
+  const tareasPendientes = tareasDelDia.filter(t => !t.completada);
+  const tareasCompletadas = tareasDelDia.filter(t => t.completada);
 
   const agregarTarea = () => {
     if(nuevaTarea.trim() === "") return;
@@ -104,42 +89,35 @@ export default function Actividades() {
       completada: false
     };
 
-    setTareasDelDia([...tareasDelDia, nuevaTareaObj]);
+    const tareasActualizadas = [...tareasDelDia, nuevaTareaObj];
     
-    const hoy = new Date();
-    if(diaSeleccionado === hoy.getDate() && mesActual === hoy.getMonth() && anoActual === hoy.getFullYear()) {
-      setTareasHoy([...tareasHoy, nuevaTareaObj]);
-    }
+    setTodasLasTareas({
+      ...todasLasTareas,
+      [fechaSeleccionadaKey]: tareasActualizadas
+    });
 
     setNuevaTarea("");
     setShowModal(false);
   };
 
-  const toggleTarea = (id: number, esCompletada: boolean) => {
-    if (!esCompletada) {
-      const tarea = tareasDelDia.find(t => t.id === id);
-      if (tarea) {
-        const tareaCompletada = { ...tarea, completada: true };
-        setTareasDelDia(tareasDelDia.filter(t => t.id !== id));
-        setTareasCompletadas([...tareasCompletadas, tareaCompletada]);
-
-        const hoy = new Date();
-        if (diaSeleccionado === hoy.getDate() && mesActual === hoy.getMonth() && anoActual === hoy.getFullYear()) {
-          setTareasHoy(tareasHoy.filter(t => t.id !== id));
-        }
-      }
-    }
+  const toggleTarea = (id: number) => {
+    const tareasActualizadas = tareasDelDia.map(tarea => 
+      tarea.id === id ? { ...tarea, completada: !tarea.completada } : tarea
+    );
+    
+    setTodasLasTareas({
+      ...todasLasTareas,
+      [fechaSeleccionadaKey]: tareasActualizadas
+    });
   };
 
-  const eliminarTarea = (id: number, esCompletada: boolean) => {
-    if (esCompletada) {
-      setTareasCompletadas(tareasCompletadas.filter(t => t.id !== id));
-      setTareasDelDia(tareasDelDia.filter(t => t.id !== id));
-    }
-    else {
-      setTareasDelDia(tareasDelDia.filter(t => t.id !== id));
-      setTareasHoy(tareasHoy.filter(t => t.id !== id));
-    }
+  const eliminarTarea = (id: number) => {
+    const tareasActualizadas = tareasDelDia.filter(t => t.id !== id);
+    
+    setTodasLasTareas({
+      ...todasLasTareas,
+      [fechaSeleccionadaKey]: tareasActualizadas
+    });
   };
 
   const dias = getDiasDelMes(mesActual, anoActual);
@@ -180,7 +158,6 @@ export default function Actividades() {
               padding: isMobile ? "16px" : "20px",
               marginTop: isMobile ? "40px" : "32px"
             }}>
-              {/* Header del calendario */}
               <div style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -266,7 +243,7 @@ export default function Actividades() {
                       aspectRatio: "1",
                       border: "none",
                       borderRadius: "8px",
-                      backgroundColor: dia && esHoy(dia) ? "#1e3a8a" : dia === diaSeleccionado ? "#dbeafe" : "transparent",
+                      backgroundColor: dia && esHoy(dia) ? "#1e3a8a" : dia === diaSeleccionado && mesActual === new Date().getMonth() && anoActual === new Date().getFullYear() ? "#dbeafe" : "transparent",
                       color: dia && esHoy(dia) ? "#ffffff" : isDarkMode ? "#f9fafb" : "#1e293b",
                       fontSize: isMobile ? "12px" : "14px",
                       fontWeight: dia && esHoy(dia) ? "600" : "400",
@@ -333,7 +310,7 @@ export default function Actividades() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {tareasDelDia.length === 0 ? (
+                  {tareasPendientes.length === 0 ? (
                     <p style={{
                       fontSize: "14px",
                       color: isDarkMode ? "#94a3b8" : "#94a3b8",
@@ -343,7 +320,7 @@ export default function Actividades() {
                       No hay tareas para el {diaSeleccionado} de {meses[mesActual]}
                     </p>
                   ) : (
-                    tareasDelDia.map((tarea) => (
+                    tareasPendientes.map((tarea) => (
                       <div key={tarea.id} style={{
                         display: "flex",
                         alignItems: "center",
@@ -354,25 +331,24 @@ export default function Actividades() {
                         backgroundColor: isDarkMode ? "#111827" : "#ffffff"
                       }}>
                         <input type="checkbox"
-                          checked={tarea.completada}
-                          onChange={() => !tarea.completada && toggleTarea(tarea.id, false)}
+                          checked={false}
+                          onChange={() => toggleTarea(tarea.id)}
                           style={{
                             width: "18px",
                             height: "18px",
                             accentColor: "#1d4ed8",
-                            cursor: tarea.completada ? "default" : "pointer",
+                            cursor: "pointer",
                             flexShrink: 0
                           }} />
                         <span style={{
                           flex: 1,
                           fontSize: isMobile ? "13px" : "14px",
-                          color: tarea.completada ? "#94a3b8" : isDarkMode ? "#f9fafb" : "#334155",
-                          wordBreak: "break-word",
-                          textDecoration: tarea.completada ? "line-through" : "none"
+                          color: isDarkMode ? "#f9fafb" : "#334155",
+                          wordBreak: "break-word"
                         }}>
                           {tarea.titulo}
                         </span>
-                        <button onClick={() => eliminarTarea(tarea.id, tarea.completada)} style={{
+                        <button onClick={() => eliminarTarea(tarea.id)} style={{
                           padding: "4px",
                           backgroundColor: "transparent",
                           border: "none",
@@ -389,75 +365,67 @@ export default function Actividades() {
                 </div>
               </div>
 
-              <div>
-                <h3 style={{
-                  fontSize: isMobile ? "16px" : "18px",
-                  fontWeight: "600",
-                  color: isDarkMode ? "#f9fafb" : "#1e293b",
-                  margin: "0 0 16px 0"
-                }}>Tareas Completadas</h3>
+              {tareasCompletadas.length > 0 && (
+                <div>
+                  <h3 style={{
+                    fontSize: isMobile ? "16px" : "18px",
+                    fontWeight: "600",
+                    color: isDarkMode ? "#f9fafb" : "#1e293b",
+                    margin: "0 0 16px 0"
+                  }}>Tareas Completadas</h3>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {tareasCompletadas.length === 0 ? (
-                    <p style={{ fontSize: "14px",
-                               color: isDarkMode ? "#94a3b8" : "#94a3b8",
-                               textAlign: "center",
-                               padding: "20px 0"
-                            }}>
-                      Aún no has completado tareas
-                    </p>) : (
-                      tareasCompletadas.map((tarea) => (
-                        <div key={tarea.id} style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          padding: isMobile ? "10px 12px" : "12px 16px",
-                          border: `1px solid ${isDarkMode ? "#475569" : "#e5e7eb"}`,
-                          borderRadius: "8px",
-                          backgroundColor: isDarkMode ? "#111827" : "#f8fafc"
-                        }}>
-                          <input type="checkbox"
-                            checked={true}
-                            readOnly
-                            style={{
-                              width: "18px",
-                              height: "18px",
-                              accentColor: "#10b981",
-                              cursor: "default",
-                              flexShrink: 0
-                            }}
-                          />
-                          <span style={{
-                            flex: 1,
-                            fontSize: isMobile ? "13px" : "14px",
-                            color: isDarkMode ? "#94a3b8" : "#94a3b8",
-                            textDecoration: "line-through",
-                            wordBreak: "break-word"
-                          }}>
-                            {tarea.titulo}
-                          </span>
-                          <button onClick={() => eliminarTarea(tarea.id, true)} style={{
-                            padding: "4px",
-                            backgroundColor: "transparent",
-                            border: "none",
-                            color: isDarkMode ? "#cbd5e1" : "#cbd5e1",
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {tareasCompletadas.map((tarea) => (
+                      <div key={tarea.id} style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        padding: isMobile ? "10px 12px" : "12px 16px",
+                        border: `1px solid ${isDarkMode ? "#475569" : "#e5e7eb"}`,
+                        borderRadius: "8px",
+                        backgroundColor: isDarkMode ? "#111827" : "#f8fafc"
+                      }}>
+                        <input type="checkbox"
+                          checked={true}
+                          onChange={() => toggleTarea(tarea.id)}
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            accentColor: "#10b981",
                             cursor: "pointer",
-                            fontSize: "14px",
                             flexShrink: 0
-                          }}>
-                            <FaTimes />
-                          </button>
-                        </div>
-                      ))
-                    )}
+                          }}
+                        />
+                        <span style={{
+                          flex: 1,
+                          fontSize: isMobile ? "13px" : "14px",
+                          color: isDarkMode ? "#94a3b8" : "#94a3b8",
+                          textDecoration: "line-through",
+                          wordBreak: "break-word"
+                        }}>
+                          {tarea.titulo}
+                        </span>
+                        <button onClick={() => eliminarTarea(tarea.id)} style={{
+                          padding: "4px",
+                          backgroundColor: "transparent",
+                          border: "none",
+                          color: isDarkMode ? "#cbd5e1" : "#cbd5e1",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          flexShrink: 0
+                        }}>
+                          <FaTimes />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </main>
 
-      {/* Modal para agregar tarea */}
       {showModal && (
         <div style={{
           position: "fixed",
