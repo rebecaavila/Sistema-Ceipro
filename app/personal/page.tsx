@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "../components/Sidebar";
 import { FaEye, FaPlus } from "react-icons/fa";
+import { useTheme } from "../components/ThemeContext";
 
-// Datos simulados
 const empleados = [
   {
     id: 1,
@@ -70,6 +70,8 @@ const empleados = [
 ];
 
 export default function Personal() {
+  const { isDarkMode } = useTheme();
+
   const [showModal, setShowModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -82,11 +84,19 @@ export default function Personal() {
     telefono: "",
     foto: null as File | null
   });
+  const [isMobile, setIsMobile] = useState(false);
 
   const itemsPerPage = 6;
   const totalPages = Math.ceil(empleados.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentEmpleados = empleados.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({
@@ -98,24 +108,17 @@ export default function Personal() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validar tipo de archivo
       if (!file.type.startsWith('image/')) {
         alert('Por favor selecciona una imagen válida');
         return;
       }
-      
-      // Validar tamaño (10MB = 10 * 1024 * 1024 bytes)
       if (file.size > 10 * 1024 * 1024) {
         alert('La imagen debe ser menor a 10MB');
         return;
       }
 
-      setFormData(prev => ({
-        ...prev,
-        foto: file
-      }));
+      setFormData(prev => ({ ...prev, foto: file }));
 
-      // Crear vista previa
       const reader = new FileReader();
       reader.onload = (event) => {
         setPhotoPreview(event.target?.result as string);
@@ -125,18 +128,13 @@ export default function Personal() {
   };
 
   const removePhoto = () => {
-    setFormData(prev => ({
-      ...prev,
-      foto: null
-    }));
+    setFormData(prev => ({ ...prev, foto: null }));
     setPhotoPreview(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Datos del empleado:", formData);
-    // Aquí enviarías los datos incluyendo la foto al servidor
-    
     setShowModal(false);
     setFormData({
       nombres: "",
@@ -151,35 +149,35 @@ export default function Personal() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", backgroundColor: "#f8fafc" }}>
+    <div style={{ display: "flex", height: "100vh", backgroundColor: isDarkMode ? "#111827" : "#f8fafc" }}>
       <Sidebar />
       <main style={{ flex: 1, overflow: "auto" }}>
-        <div style={{ padding: "32px" }}>
+        <div style={{ padding: isMobile ? "16px" : "32px" }}>
           {/* Header */}
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "32px"
+            marginBottom: "32px",
+            marginTop: isMobile ? "56px" : "32px"
           }}>
-            <div>
-              <h1 style={{ 
-                fontSize: "28px", 
-                fontWeight: "700", 
-                color: "#1f2937",
+            <div style={{ flex: 1 }}>
+              <h1 style={{
+                fontSize: "28px",
+                fontWeight: "700",
+                color: isDarkMode ? "#f9fafb" : "#1f2937",
                 margin: "0 0 8px 0"
               }}>
                 Gestión de Personal
               </h1>
-              <p style={{ 
-                color: "#6b7280", 
+              <p style={{
+                color: isDarkMode ? "#cbd5e1" : "#6b7280",
                 margin: 0,
                 fontSize: "16px"
               }}>
                 Veo y gestiona los datos de su personal.
               </p>
             </div>
-            
             <button
               onClick={() => setShowModal(true)}
               style={{
@@ -188,139 +186,181 @@ export default function Personal() {
                 gap: "8px",
                 backgroundColor: "#1d4ed8",
                 color: "#ffffff",
-                padding: "12px 20px",
+                padding: isMobile ? "8px 16px" : "12px 20px",
                 borderRadius: "8px",
                 border: "none",
-                fontSize: "14px",
+                fontSize: isMobile ? "14px" : "14px",
                 fontWeight: "600",
                 cursor: "pointer",
-                transition: "all 0.2s ease"
+                transition: "all 0.2s ease",
+                minWidth: isMobile ? "auto" : "180px",
+                justifyContent: "center"
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#1e40af";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#1d4ed8";
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#1e40af"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#1d4ed8"; }}
             >
               <FaPlus />
-              Añadir Empleado
+              <span style={isMobile ? { display: "none" } : {}}>Añadir Empleado</span>
             </button>
           </div>
 
           {/* Tabla */}
           <div style={{
-            backgroundColor: "#ffffff",
+            backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
             borderRadius: "12px",
-            border: "1px solid #e5e7eb",
+            border: isDarkMode ? "1px solid #334155" : "1px solid #e5e7eb",
             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-            overflow: "hidden"
+            overflowX: "hidden"
           }}>
-            {/* Header de tabla */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "80px 1fr 1fr 1fr 1fr 80px",
-              padding: "20px 24px",
-              backgroundColor: "#f9fafb",
-              borderBottom: "1px solid #e5e7eb",
-              fontSize: "12px",
-              fontWeight: "600",
-              color: "#6b7280",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em"
-            }}>
-              <div>Foto</div>
-              <div>Nombre</div>
-              <div>Apellidos</div>
-              <div>Cargo</div>
-              <div>Área</div>
-              <div style={{ textAlign: "center" }}>Acción</div>
-            </div>
-
-            {/* Filas de empleados */}
-            {currentEmpleados.map((empleado) => (
-              <div
-                key={empleado.id}
-                style={{
+            {!isMobile ? (
+              <>
+                <div style={{
                   display: "grid",
                   gridTemplateColumns: "80px 1fr 1fr 1fr 1fr 80px",
                   padding: "20px 24px",
-                  borderBottom: "1px solid #f3f4f6",
-                  alignItems: "center",
-                  transition: "background-color 0.2s ease"
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#f9fafb";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                }}
-              >
-                <div style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  backgroundColor: "#e5e7eb",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "18px"
+                  backgroundColor: isDarkMode ? "#334155" : "#f9fafb",
+                  borderBottom: isDarkMode ? "1px solid #475569" : "1px solid #e5e7eb",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  color: isDarkMode ? "#cbd5e1" : "#6b7280",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em"
                 }}>
-                  👤
+                  <div>Foto</div>
+                  <div>Nombre</div>
+                  <div>Apellidos</div>
+                  <div>Cargo</div>
+                  <div>Área</div>
+                  <div style={{ textAlign: "center" }}>Acción</div>
                 </div>
-                <div style={{ 
-                  fontSize: "14px", 
-                  fontWeight: "500", 
-                  color: "#1f2937" 
-                }}>
-                  {empleado.nombre}
-                </div>
-                <div style={{ 
-                  fontSize: "14px", 
-                  color: "#6b7280" 
-                }}>
-                  {empleado.apellidos}
-                </div>
-                <div style={{ 
-                  fontSize: "14px", 
-                  color: "#6b7280" 
-                }}>
-                  {empleado.cargo}
-                </div>
-                <div style={{ 
-                  fontSize: "14px", 
-                  color: "#6b7280" 
-                }}>
-                  {empleado.area}
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <Link href={`/personal/${empleado.id}`}>
-                    <button
-                      style={{
-                        padding: "8px",
-                        backgroundColor: "transparent",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        color: "#1d4ed8",
-                        fontSize: "14px",
-                        transition: "all 0.2s ease"
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "#eff6ff";
-                        e.currentTarget.style.borderColor = "#1d4ed8";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.borderColor = "#e5e7eb";
-                      }}
-                    >
-                      <FaEye />
-                    </button>
-                  </Link>
-                </div>
+                {currentEmpleados.map((empleado) => (
+                  <div
+                    key={empleado.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "80px 1fr 1fr 1fr 1fr 80px",
+                      padding: "20px 24px",
+                      borderBottom: isDarkMode ? "1px solid #475569" : "1px solid #f3f4f6",
+                      alignItems: "center",
+                      backgroundColor: "transparent",
+                      color: isDarkMode ? "#f9fafb" : undefined,
+                      transition: "background-color 0.2s ease"
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = isDarkMode ? "#334155" : "#f9fafb"; }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                  >
+                    <div style={{
+                      width: "40px", height: "40px",
+                      borderRadius: "50%",
+                      backgroundColor: isDarkMode ? "#1f2937" : "#e5e7eb",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px"
+                    }}>
+                      👤
+                    </div>
+                    <div style={{ fontSize: "14px", fontWeight: "500", color: isDarkMode ? "#f9fafb" : "#1f2937" }}>
+                      {empleado.nombre}
+                    </div>
+                    <div style={{ fontSize: "14px", color: isDarkMode ? "#cbd5e1" : "#6b7280" }}>
+                      {empleado.apellidos}
+                    </div>
+                    <div style={{ fontSize: "14px", color: isDarkMode ? "#cbd5e1" : "#6b7280" }}>
+                      {empleado.cargo}
+                    </div>
+                    <div style={{ fontSize: "14px", color: isDarkMode ? "#cbd5e1" : "#6b7280" }}>
+                      {empleado.area}
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <Link href={`/personal/${empleado.id}`}>
+                        <button
+                          style={{
+                            padding: "8px",
+                            backgroundColor: isDarkMode ? "#334155" : "transparent",
+                            border: isDarkMode ? "1px solid #475569" : "1px solid #e5e7eb",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            color: "#1d4ed8",
+                            fontSize: "14px",
+                            transition: "all 0.2s ease"
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.backgroundColor = "#1d4ed8";
+                            e.currentTarget.style.color = "#fff";
+                            e.currentTarget.style.borderColor = "#1d4ed8";
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.backgroundColor = isDarkMode ? "#334155" : "transparent";
+                            e.currentTarget.style.color = "#1d4ed8";
+                            e.currentTarget.style.borderColor = isDarkMode ? "#475569" : "#e5e7eb";
+                          }}
+                        >
+                          <FaEye />
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "18px", padding: "12px" }}>
+                {currentEmpleados.map((empleado) => (
+                  <div key={empleado.id} style={{
+                    background: isDarkMode ? "#223149" : "#f1f5f9",
+                    borderRadius: "10px",
+                    boxShadow: isDarkMode ? "0 2px 7px #1e293b70" : "0 1px 4px #0001",
+                    display: "flex",
+                    flexDirection: "column",
+                    padding: "15px 18px",
+                    gap: "10px"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                      <div style={{
+                        width: "42px", height: "42px", borderRadius: "50%",
+                        backgroundColor: isDarkMode ? "#1f2937" : "#e5e7eb",
+                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px",
+                        flexShrink: 0
+                      }}>👤</div>
+                      <div>
+                        <div style={{ fontSize: "16px", fontWeight: 600, color: isDarkMode ? "#f1f5f9" : "#1e293b" }}>
+                          {empleado.nombre} {empleado.apellidos}
+                        </div>
+                        <div style={{ fontSize: "13px", color: isDarkMode ? "#cbd5e1" : "#6b7280", marginTop: 3 }}>
+                          {empleado.cargo} <span style={{ color: "#64748b", fontWeight: 400 }}>|</span> {empleado.area}
+                        </div>
+                      </div>
+                      <div style={{ marginLeft: "auto" }}>
+                        <Link href={`/personal/${empleado.id}`}>
+                          <button
+                            style={{
+                              padding: "8px",
+                              backgroundColor: isDarkMode ? "#334155" : "#fff",
+                              border: isDarkMode ? "1px solid #475569" : "1px solid #e5e7eb",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              color: "#1d4ed8",
+                              fontSize: "18px",
+                              transition: "all 0.2s ease"
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.backgroundColor = "#1d4ed8";
+                              e.currentTarget.style.color = "#fff";
+                              e.currentTarget.style.borderColor = "#1d4ed8";
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.backgroundColor = isDarkMode ? "#334155" : "#fff";
+                              e.currentTarget.style.color = "#1d4ed8";
+                              e.currentTarget.style.borderColor = isDarkMode ? "#475569" : "#e5e7eb";
+                            }}
+                            aria-label="Ver detalles"
+                          >
+                            <FaEye />
+                          </button>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
 
           {/* Paginación */}
@@ -328,44 +368,43 @@ export default function Personal() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginTop: "24px"
+            marginTop: "24px",
+            flexWrap: "wrap",
+            gap: "8px"
           }}>
-            <p style={{
-              fontSize: "14px",
-              color: "#6b7280",
-              margin: 0
-            }}>
+            <p style={{ fontSize: "14px", color: isDarkMode ? "#cbd5e1" : "#6b7280", margin: 0 }}>
               Mostrando {startIndex + 1} a {Math.min(startIndex + itemsPerPage, empleados.length)} de {empleados.length} resultados
             </p>
-            
-            <div style={{ display: "flex", gap: "8px" }}>
+
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 style={{
                   padding: "8px 12px",
                   backgroundColor: "transparent",
-                  border: "1px solid #e5e7eb",
+                  border: isDarkMode ? "1px solid #475569" : "1px solid #e5e7eb",
                   borderRadius: "6px",
                   cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                  color: currentPage === 1 ? "#9ca3af" : "#6b7280",
+                  color: currentPage === 1 ? "#64748b" : isDarkMode ? "#cbd5e1" : "#6b7280",
                   fontSize: "14px"
                 }}
               >
                 ←
               </button>
-              
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   style={{
                     padding: "8px 12px",
                     backgroundColor: currentPage === page ? "#1d4ed8" : "transparent",
-                    border: "1px solid #e5e7eb",
+                    border: "1px solid",
+                    borderColor: currentPage === page ? "#1d4ed8" : isDarkMode ? "#475569" : "#e5e7eb",
                     borderRadius: "6px",
                     cursor: "pointer",
-                    color: currentPage === page ? "#ffffff" : "#6b7280",
+                    color: currentPage === page ? "#ffffff" : isDarkMode ? "#cbd5e1" : "#6b7280",
                     fontSize: "14px",
                     fontWeight: currentPage === page ? "600" : "400"
                   }}
@@ -373,17 +412,17 @@ export default function Personal() {
                   {page}
                 </button>
               ))}
-              
+
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
                 style={{
                   padding: "8px 12px",
                   backgroundColor: "transparent",
-                  border: "1px solid #e5e7eb",
+                  border: isDarkMode ? "1px solid #475569" : "1px solid #e5e7eb",
                   borderRadius: "6px",
                   cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                  color: currentPage === totalPages ? "#9ca3af" : "#6b7280",
+                  color: currentPage === totalPages ? "#64748b" : isDarkMode ? "#cbd5e1" : "#6b7280",
                   fontSize: "14px"
                 }}
               >
@@ -409,7 +448,7 @@ export default function Personal() {
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: "#ffffff",
+            backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
             borderRadius: "12px",
             padding: "32px",
             width: "min(600px, 90vw)",
@@ -417,17 +456,16 @@ export default function Personal() {
             overflow: "auto",
             boxShadow: "0 25px 50px rgba(0, 0, 0, 0.25)"
           }}>
-            {/* Header del modal con foto funcional */}
-            <div style={{ 
-              display: "flex", 
-              alignItems: "center", 
+            <div style={{
+              display: "flex",
+              alignItems: "center",
               gap: "16px",
               marginBottom: "24px"
             }}>
               <div style={{
                 width: "80px",
                 height: "80px",
-                backgroundColor: "#f3f4f6",
+                backgroundColor: isDarkMode ? "#334155" : "#f3f4f6",
                 borderRadius: "12px",
                 display: "flex",
                 alignItems: "center",
@@ -470,15 +508,13 @@ export default function Personal() {
                       ×
                     </button>
                   </>
-                ) : (
-                  "👤"
-                )}
+                ) : "👤"}
               </div>
               <div>
                 <label
                   htmlFor="photo-upload"
                   style={{
-                    backgroundColor: "#e5e7eb",
+                    backgroundColor: isDarkMode ? "#475569" : "#e5e7eb",
                     border: "none",
                     padding: "8px 16px",
                     borderRadius: "6px",
@@ -491,10 +527,10 @@ export default function Personal() {
                     transition: "all 0.2s ease"
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#d1d5db";
+                    e.currentTarget.style.backgroundColor = isDarkMode ? "#64748b" : "#d1d5db";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#e5e7eb";
+                    e.currentTarget.style.backgroundColor = isDarkMode ? "#475569" : "#e5e7eb";
                   }}
                 >
                   📷 Subir Foto
@@ -508,7 +544,7 @@ export default function Personal() {
                 />
                 <p style={{
                   fontSize: "12px",
-                  color: "#9ca3af",
+                  color: isDarkMode ? "#94a3b8" : "#9ca3af",
                   margin: "4px 0 0 0"
                 }}>
                   PNG, JPG hasta 10MB
@@ -538,7 +574,7 @@ export default function Personal() {
                     display: "block",
                     fontSize: "14px",
                     fontWeight: "500",
-                    color: "#374151",
+                    color: isDarkMode ? "#f9fafb" : "#374151",
                     marginBottom: "6px"
                   }}>
                     Nombres
@@ -553,10 +589,12 @@ export default function Personal() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      border: "1px solid #d1d5db",
+                      border: `1px solid ${isDarkMode ? "#475569" : "#d1d5db"}`,
                       borderRadius: "6px",
                       fontSize: "14px",
-                      outline: "none"
+                      outline: "none",
+                      backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
+                      color: isDarkMode ? "#f9fafb" : "#111827"
                     }}
                   />
                 </div>
@@ -565,7 +603,7 @@ export default function Personal() {
                     display: "block",
                     fontSize: "14px",
                     fontWeight: "500",
-                    color: "#374151",
+                    color: isDarkMode ? "#f9fafb" : "#374151",
                     marginBottom: "6px"
                   }}>
                     Apellidos
@@ -580,10 +618,12 @@ export default function Personal() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      border: "1px solid #d1d5db",
+                      border: `1px solid ${isDarkMode ? "#475569" : "#d1d5db"}`,
                       borderRadius: "6px",
                       fontSize: "14px",
-                      outline: "none"
+                      outline: "none",
+                      backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
+                      color: isDarkMode ? "#f9fafb" : "#111827"
                     }}
                   />
                 </div>
@@ -594,7 +634,7 @@ export default function Personal() {
                   display: "block",
                   fontSize: "14px",
                   fontWeight: "500",
-                  color: "#374151",
+                  color: isDarkMode ? "#f9fafb" : "#374151",
                   marginBottom: "6px"
                 }}>
                   DNI
@@ -609,10 +649,12 @@ export default function Personal() {
                   style={{
                     width: "100%",
                     padding: "10px 12px",
-                    border: "1px solid #d1d5db",
+                    border: `1px solid ${isDarkMode ? "#475569" : "#d1d5db"}`,
                     borderRadius: "6px",
                     fontSize: "14px",
-                    outline: "none"
+                    outline: "none",
+                    backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
+                    color: isDarkMode ? "#f9fafb" : "#111827"
                   }}
                 />
               </div>
@@ -628,7 +670,7 @@ export default function Personal() {
                     display: "block",
                     fontSize: "14px",
                     fontWeight: "500",
-                    color: "#374151",
+                    color: isDarkMode ? "#f9fafb" : "#374151",
                     marginBottom: "6px"
                   }}>
                     Área / Cargo
@@ -641,11 +683,12 @@ export default function Personal() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      border: "1px solid #d1d5db",
+                      border: `1px solid ${isDarkMode ? "#475569" : "#d1d5db"}`,
                       borderRadius: "6px",
                       fontSize: "14px",
                       outline: "none",
-                      backgroundColor: "#ffffff"
+                      backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
+                      color: isDarkMode ? "#f9fafb" : "#111827"
                     }}
                   >
                     <option value="">Seleccione área/cargo</option>
@@ -660,7 +703,7 @@ export default function Personal() {
                     display: "block",
                     fontSize: "14px",
                     fontWeight: "500",
-                    color: "#374151",
+                    color: isDarkMode ? "#f9fafb" : "#374151",
                     marginBottom: "6px"
                   }}>
                     Horario
@@ -673,11 +716,12 @@ export default function Personal() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      border: "1px solid #d1d5db",
+                      border: `1px solid ${isDarkMode ? "#475569" : "#d1d5db"}`,
                       borderRadius: "6px",
                       fontSize: "14px",
                       outline: "none",
-                      backgroundColor: "#ffffff"
+                      backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
+                      color: isDarkMode ? "#f9fafb" : "#111827"
                     }}
                   >
                     <option value="">Seleccione horario</option>
@@ -693,7 +737,7 @@ export default function Personal() {
                   display: "block",
                   fontSize: "14px",
                   fontWeight: "500",
-                  color: "#374151",
+                  color: isDarkMode ? "#f9fafb" : "#374151",
                   marginBottom: "6px"
                 }}>
                   Teléfono
@@ -708,10 +752,12 @@ export default function Personal() {
                   style={{
                     width: "100%",
                     padding: "10px 12px",
-                    border: "1px solid #d1d5db",
+                    border: `1px solid ${isDarkMode ? "#475569" : "#d1d5db"}`,
                     borderRadius: "6px",
                     fontSize: "14px",
-                    outline: "none"
+                    outline: "none",
+                    backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
+                    color: isDarkMode ? "#f9fafb" : "#111827"
                   }}
                 />
               </div>
@@ -726,12 +772,12 @@ export default function Personal() {
                   onClick={() => setShowModal(false)}
                   style={{
                     padding: "10px 20px",
-                    backgroundColor: "#f3f4f6",
+                    backgroundColor: isDarkMode ? "#334155" : "#f3f4f6",
                     border: "none",
                     borderRadius: "6px",
                     fontSize: "14px",
                     fontWeight: "500",
-                    color: "#6b7280",
+                    color: isDarkMode ? "#cbd5e1" : "#6b7280",
                     cursor: "pointer"
                   }}
                 >

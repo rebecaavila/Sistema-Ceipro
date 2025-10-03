@@ -5,9 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FaHome,
-  FaUsers,
-  FaQrcode,
-  FaCamera,
+  FaClipboardList,
+  FaCalendarCheck,
   FaSignOutAlt,
   FaTimes,
   FaBars,
@@ -17,7 +16,7 @@ import {
 
 import { useTheme } from "./ThemeContext";
 
-export default function Sidebar() {
+export default function SidebarEmpleado() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -25,11 +24,16 @@ export default function Sidebar() {
 
   const { isDarkMode, toggleTheme } = useTheme();
 
+  const empleadoLogueado = {
+    nombre: "Sofia Rodriguez",
+    cargo: "Gerente de Proyecto",
+    foto: "/avatars/sofia.jpg",
+  };
+
   const links = [
-    { name: "Inicio", href: "/dashboard", icon: <FaHome /> },
-    { name: "Personal", href: "/personal", icon: <FaUsers /> },
-    { name: "Generar QR", href: "/generar-qr", icon: <FaQrcode /> },
-    { name: "Escanear", href: "/escanear-qr", icon: <FaCamera /> },
+    { name: "Inicio", href: "/dashboard-personal", icon: <FaHome /> },
+    { name: "Actividades", href: "/actividades", icon: <FaClipboardList /> },
+    { name: "Asistencias", href: "/asistencias", icon: <FaCalendarCheck /> },
   ];
 
   useEffect(() => {
@@ -47,33 +51,25 @@ export default function Sidebar() {
 
   if (isMobile && !mobileMenuOpen) {
     return (
-      <aside
+      <button
+        aria-label="Abrir menú"
+        onClick={() => setMobileMenuOpen(true)}
         style={{
           position: "fixed",
-          top: 12,
-          left: 12,
+          top: 18,
+          left: 18,
           zIndex: 10000,
+          backgroundColor: "#1d4ed8",
+          color: "#fff",
+          border: "none",
+          borderRadius: "8px",
+          padding: "12px",
+          fontSize: "24px",
+          cursor: "pointer",
         }}
       >
-        <button
-          onClick={() => setMobileMenuOpen(true)}
-          style={{
-            backgroundColor: "#1d4ed8",
-            border: "none",
-            color: "#fff",
-            padding: "12px",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "20px",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-          aria-label="Abrir menú"
-        >
-          <FaBars />
-        </button>
-      </aside>
+        <FaBars />
+      </button>
     );
   }
 
@@ -88,7 +84,7 @@ export default function Sidebar() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.3)",
+            backgroundColor: "rgba(0,0,0,0.2)",
             zIndex: 9999,
           }}
         />
@@ -96,7 +92,7 @@ export default function Sidebar() {
       <aside
         style={{
           height: "100vh",
-          width: collapsed ? "80px" : "280px",
+          width: collapsed ? (isMobile ? 225 : 80) : (isMobile ? 225 : 280),
           backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
           color: isDarkMode ? "#f9fafb" : "#1e293b",
           boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
@@ -109,10 +105,10 @@ export default function Sidebar() {
           left: isMobile ? (mobileMenuOpen ? 0 : -280) : 0,
           top: 0,
           overflowY: "auto",
-          paddingTop: "12px",
+          paddingTop: 12,
         }}
       >
-        {/* Header */}
+        {/* Header con logo y botón cerrar/colapsar */}
         <div
           style={{
             padding: "24px 20px",
@@ -124,36 +120,30 @@ export default function Sidebar() {
           }}
         >
           {/* Logo */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flex: 1,
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1 }}>
             <img
               src="/log.webp"
               alt="CEIPRO"
               style={{
-                height: collapsed ? "32px" : "40px",
+                height: collapsed ? 32 : 40,
                 width: "auto",
                 transition: "height 0.3s ease",
               }}
             />
           </div>
 
-          {/* Button X to close (mobile) or collapse (desktop) */}
+          {/* Botón cerrar menú móvil o colapsar escritorio */}
           {isMobile ? (
             <button
+              aria-label="Cerrar menú"
               onClick={() => setMobileMenuOpen(false)}
               style={{
                 position: "absolute",
                 top: "50%",
-                right: "16px",
+                right: 16,
                 transform: "translateY(-50%)",
-                width: "24px",
-                height: "24px",
+                width: 24,
+                height: 24,
                 backgroundColor: "transparent",
                 border: "1px solid #e5e7eb",
                 borderRadius: "6px",
@@ -161,15 +151,14 @@ export default function Sidebar() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "12px",
+                fontSize: 12,
                 color: isDarkMode ? "#cbd5e1" : "#6b7280",
                 transition: "all 0.2s ease",
                 zIndex: 10001,
               }}
-              aria-label="Cerrar menú"
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isDarkMode ? "#4b5563" : "#f3f4f6";
-                e.currentTarget.style.color = isDarkMode ? "#f9fafb" : "#374151";
+                e.currentTarget.style.backgroundColor = "#f3f4f6";
+                e.currentTarget.style.color = "#374151";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "transparent";
@@ -200,8 +189,8 @@ export default function Sidebar() {
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isDarkMode ? "#4b5563" : "#f3f4f6";
-                e.currentTarget.style.color = isDarkMode ? "#f9fafb" : "#374151";
+                e.currentTarget.style.backgroundColor = "#f3f4f6";
+                e.currentTarget.style.color = "#374151";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "transparent";
@@ -216,10 +205,10 @@ export default function Sidebar() {
               onClick={() => setCollapsed(false)}
               style={{
                 position: "absolute",
-                top: "24px",
+                top: "50%",
                 right: "-12px",
-                width: "24px",
-                height: "24px",
+                width: "32px",
+                height: "32px",
                 backgroundColor: "#1d4ed8",
                 border: "2px solid #ffffff",
                 borderRadius: "50%",
@@ -227,21 +216,21 @@ export default function Sidebar() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "10px",
+                fontSize: "18px",
                 color: "#ffffff",
                 boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                 transition: "all 0.2s ease",
                 zIndex: 10,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#1e40af";
+                e.currentTarget.style.backgroundColor = "#2563eb";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "#1d4ed8";
               }}
               title="Expandir menú"
             >
-              →
+              ➤
             </button>
           )}
         </div>
@@ -253,15 +242,15 @@ export default function Sidebar() {
             padding: "16px 12px",
             display: "flex",
             flexDirection: "column",
-            gap: "8px",
+            gap: 8,
             color: isDarkMode ? "#f9fafb" : undefined,
           }}
         >
           {links.map((link) => {
             const isActive =
               pathname === link.href ||
-              (link.href === "/personal" && pathname.startsWith("/personal"));
-
+              (link.href === "/actividades" && pathname.startsWith("/actividades")) ||
+              (link.href === "/asistencias" && pathname.startsWith("/asistencias"));
             return (
               <Link
                 key={link.name}
@@ -275,7 +264,7 @@ export default function Sidebar() {
                   textDecoration: "none",
                   transition: "all 0.2s ease",
                   backgroundColor: isActive ? "#1d4ed8" : "transparent",
-                  color: isActive ? "#ffffff" : isDarkMode ? "#cbd5e1" : "#6b7280",
+                  color: isActive ? "#fff" : isDarkMode ? "#cbd5e1" : "#6b7280",
                   fontWeight: isActive ? "600" : "500",
                   fontSize: "14px",
                   position: "relative",
@@ -297,7 +286,7 @@ export default function Sidebar() {
                 <span
                   style={{
                     fontSize: "18px",
-                    marginRight: collapsed ? "0" : "12px",
+                    marginRight: collapsed ? 0 : "12px",
                     display: "flex",
                     alignItems: "center",
                   }}
@@ -306,6 +295,7 @@ export default function Sidebar() {
                 </span>
                 {!collapsed && <span>{link.name}</span>}
 
+                {/* Tooltip si está colapsado */}
                 {collapsed && (
                   <div
                     style={{
@@ -349,7 +339,12 @@ export default function Sidebar() {
         </nav>
 
         {/* Botón modo oscuro / claro */}
-        <div style={{ padding: "0 20px", marginBottom: "20px" }}>
+        <div style={{
+          padding: "0 20px",
+          marginBottom: "20px",
+          display: "flex",
+          justifyContent: collapsed ? "center" : "stretch"
+        }}>
           <button
             onClick={toggleTheme}
             style={{
@@ -379,7 +374,7 @@ export default function Sidebar() {
         <div
           style={{
             borderTop: isDarkMode ? "1px solid #334155" : "1px solid #f3f4f6",
-            padding: "16px",
+            padding: 16,
             color: isDarkMode ? "#f9fafb" : undefined,
           }}
         >
@@ -394,38 +389,51 @@ export default function Sidebar() {
                 padding: "12px",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <img
-                  src="/RONALDO.png"
+                  src={empleadoLogueado.foto}
                   alt="Perfil"
                   style={{
-                    width: "40px",
-                    height: "40px",
+                    width: 40,
+                    height: 40,
                     borderRadius: "50%",
                     border: "2px solid #e5e7eb",
                     objectFit: "cover",
                   }}
                 />
                 <div>
-                  <p style={{ fontSize: "14px", fontWeight: "600", margin: 0, lineHeight: "1.2" }}>
-                    Ronaldo Rojas
+                  <p
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      margin: 0,
+                      lineHeight: "1.2",
+                    }}
+                  >
+                    {empleadoLogueado.nombre}
                   </p>
-                  <p style={{ fontSize: "12px", color: isDarkMode ? "#cbd5e1" : "#6b7280", margin: 0, lineHeight: "1.2" }}>
-                    Administrador
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: isDarkMode ? "#cbd5e1" : "#6b7280",
+                      margin: 0,
+                      lineHeight: "1.2",
+                    }}
+                  >
+                    {empleadoLogueado.cargo}
                   </p>
                 </div>
               </div>
-
               <button
                 onClick={handleLogout}
                 style={{
-                  padding: "8px",
+                  padding: 8,
                   backgroundColor: "transparent",
                   border: "none",
-                  borderRadius: "6px",
+                  borderRadius: 6,
                   cursor: "pointer",
                   color: "#ef4444",
-                  fontSize: "16px",
+                  fontSize: 16,
                   transition: "all 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
@@ -440,13 +448,20 @@ export default function Sidebar() {
               </button>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
               <img
-                src="/RONALDO.png"
+                src={empleadoLogueado.foto}
                 alt="Perfil"
                 style={{
-                  width: "32px",
-                  height: "32px",
+                  width: 32,
+                  height: 32,
                   borderRadius: "50%",
                   border: "2px solid #e5e7eb",
                   objectFit: "cover",
@@ -456,13 +471,13 @@ export default function Sidebar() {
               <button
                 onClick={handleLogout}
                 style={{
-                  padding: "8px",
+                  padding: 8,
                   backgroundColor: "transparent",
                   border: "none",
-                  borderRadius: "6px",
+                  borderRadius: 6,
                   cursor: "pointer",
                   color: "#ef4444",
-                  fontSize: "16px",
+                  fontSize: 16,
                   transition: "all 0.2s ease",
                 }}
                 onMouseEnter={(e) => {

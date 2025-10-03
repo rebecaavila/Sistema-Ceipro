@@ -1,296 +1,87 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Sidebar from "../../components/Sidebar";
-import { FaEdit, FaSearch, FaFilter, FaCheck, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaEdit, FaCheck, FaChevronLeft, FaChevronRight, FaCalendarAlt } from "react-icons/fa";
+import { useTheme } from "../../components/ThemeContext";
 
-// Tipos de TypeScript
-interface DiasSemana {
+interface EmpleadoData {
+  id: number;
   nombre: string;
-  numero: string;
-  fecha: string;
-  activo: boolean;
-  isToday: boolean;
-  dateObj: Date;
+  apellidos: string;
+  dni: string;
+  cargo: string;
+  area: string;
+  horario: string;
+  telefono: string;
+  foto: File | null;
 }
 
-interface Asistencia {
-  fecha: string;
-  ingreso: string;
-  salida: string;
-  estado: string;
-  horasTrabajadas: number;
-}
-
-interface AsistenciaSemanal {
-  fecha: string;
-  dia: string;
-  ingreso: string;
-  salida: string;
-  estado: string;
-  horasTrabajadas: number;
-}
-
-interface CalendarDay {
-  date: Date;
-  day: number;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-  isSelected: boolean;
-}
-
-// Datos simulados del empleado
-const empleadoData = {
-  id: 1,
-  nombre: "Sofia Rodriguez",
-  dni: "123456789",
-  cargo: "Gerente de Proyecto",
-  foto: "/avatars/sofia.jpg"
-};
-
-// Datos simulados de asistencias
-const asistenciasData: Asistencia[] = [
-  {
-    fecha: "2024-07-26",
-    ingreso: "09:00",
-    salida: "18:00",
-    estado: "Puntual",
-    horasTrabajadas: 8
-  },
-  {
-    fecha: "2024-07-25",
-    ingreso: "09:15",
-    salida: "18:00",
-    estado: "Tardanza",
-    horasTrabajadas: 7.75
-  },
-  {
-    fecha: "2024-07-24",
-    ingreso: "--:--",
-    salida: "--:--",
-    estado: "Falta",
-    horasTrabajadas: 0
-  },
-  {
-    fecha: "2024-07-23",
-    ingreso: "09:05",
-    salida: "18:00",
-    estado: "Puntual",
-    horasTrabajadas: 7.92
-  },
-  {
-    fecha: "2024-07-22",
-    ingreso: "09:00",
-    salida: "17:30",
-    estado: "Incompleto",
-    horasTrabajadas: 7.5
-  }
-];
-
-// Base de actividades simuladas por fecha
-const actividadesDataBase: { [key: string]: string[] } = {
-  "2025-09-22": [
-    "Reunión de planificación semanal del proyecto.",
-    "Revisión y aprobación de diseños UX/UI.",
-    "Capacitación de nuevo personal del área.",
-    "Elaboración de informe de avance para la gerencia."
+const actividadesDataBase: { [key: string]: { texto: string; tipo: string }[] } = {
+  "2025-10-02": [
+    { texto: "Reunión de planificación semanal del proyecto.", tipo: "reunion" },
+    { texto: "Revisión y aprobación de diseños UX/UI.", tipo: "revision" },
+    { texto: "Capacitación de nuevo personal del área.", tipo: "capacitacion" },
+    { texto: "Elaboración de informe de avance para la gerencia.", tipo: "documento" }
   ],
-  "2025-09-23": [
-    "Revisión de código del equipo de desarrollo.",
-    "Reunión con cliente para definir requerimientos.",
-    "Actualización de documentación del proyecto."
+  "2025-10-03": [
+    { texto: "Revisión de código del equipo de desarrollo.", tipo: "revision" },
+    { texto: "Reunión con cliente para definir requerimientos.", tipo: "reunion" },
+    { texto: "Actualización de documentación del proyecto.", tipo: "documento" }
   ],
-  "2025-09-24": [
-    "Análisis de métricas de rendimiento del equipo.",
-    "Preparación de presentación para stakeholders.",
-    "Sesión de feedback con el equipo."
-  ],
-  "2025-09-25": [
-    "Reunión de seguimiento de sprint.",
-    "Revisión de presupuesto del proyecto.",
-    "Entrevistas para nueva contratación.",
-    "Planificación de recursos para próximo mes."
-  ],
-  "2025-09-26": [
-    "Demo del producto con el cliente.",
-    "Retrospectiva del sprint.",
-    "Revisión de casos de prueba."
-  ],
-  "2025-09-27": [
-    "Mantenimiento de sistemas.",
-    "Revisión de documentación técnica."
+  "2025-10-06": [
+    { texto: "Sprint planning meeting.", tipo: "reunion" },
+    { texto: "Code review session.", tipo: "revision" }
   ]
 };
 
 export default function EmpleadoPerfil() {
+  const { isDarkMode } = useTheme();
   const [activeTab, setActiveTab] = useState<'asistencias' | 'actividades'>('asistencias');
-  const [searchTerm, setSearchTerm] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [showAsistenciasCalendar, setShowAsistenciasCalendar] = useState(false);
-  const [selectedAsistenciasDate, setSelectedAsistenciasDate] = useState(new Date());
+  const [showActividadesCalendar, setShowActividadesCalendar] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [actividadesCalendarMonth, setActividadesCalendarMonth] = useState(new Date().getMonth());
+  const [actividadesCalendarYear, setActividadesCalendarYear] = useState(new Date().getFullYear());
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [empleado, setEmpleado] = useState<EmpleadoData>({
+    id: 1,
+    nombre: "Sofia",
+    apellidos: "Rodriguez",
+    dni: "123456789",
+    cargo: "Project Manager",
+    area: "Engineering",
+    horario: "completo",
+    telefono: "987654321",
+    foto: null
+  });
+  const [formEdit, setFormEdit] = useState<EmpleadoData>(empleado);
 
-  // Función para obtener el inicio de la semana (lunes)
-  const getWeekStart = (date: Date): Date => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
+  const theme = {
+    bg: isDarkMode ? "#0f172a" : "#f8fafc",
+    cardBg: isDarkMode ? "#1e293b" : "#ffffff",
+    text: isDarkMode ? "#f1f5f9" : "#1f2937",
+    textSecondary: isDarkMode ? "#94a3b8" : "#6b7280",
+    border: isDarkMode ? "#334155" : "#e5e7eb",
+    primary: "#1d4ed8",
+    hover: isDarkMode ? "#334155" : "#f3f4f6"
   };
 
-  // Función para generar los días de la semana
-  const generateWeekDays = (startDate: Date): DiasSemana[] => {
-    const days: DiasSemana[] = [];
-    const today = new Date();
-    const weekStart = new Date(startDate);
-    
-    for (let i = 0; i < 6; i++) {
-      const currentDay = new Date(weekStart);
-      currentDay.setDate(weekStart.getDate() + i);
-      
-      const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const isToday = currentDay.toDateString() === today.toDateString();
-      const isSelected = currentDay.toDateString() === selectedDate.toDateString();
-      
-      days.push({
-        nombre: dayNames[i],
-        numero: currentDay.getDate().toString(),
-        fecha: currentDay.toISOString().split('T')[0],
-        activo: isSelected,
-        isToday: isToday,
-        dateObj: new Date(currentDay)
-      });
-    }
-    return days;
-  };
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
-  // Función para formatear la fecha para mostrar
-  const formatWeekRange = (startDate: Date): string => {
-    const start = new Date(startDate);
-    const end = new Date(startDate);
-    end.setDate(start.getDate() + 5);
-    
-    const months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    
-    if (start.getMonth() === end.getMonth()) {
-      return `${start.getDate()} - ${end.getDate()} de ${months[start.getMonth()]} ${start.getFullYear()}`;
-    } else {
-      return `${start.getDate()} de ${months[start.getMonth()]} - ${end.getDate()} de ${months[end.getMonth()]} ${start.getFullYear()}`;
-    }
-  };
-
-  // Función para navegar semanas
-  const navigateWeek = (direction: number): void => {
-    const newWeekStart = new Date(currentWeekStart);
-    newWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
-    setCurrentWeekStart(newWeekStart);
-    
-    const newSelectedDate = new Date(newWeekStart);
-    setSelectedDate(newSelectedDate);
-  };
-
-  // Función para seleccionar un día (actividades)
-  const selectDay = (day: DiasSemana): void => {
-    setSelectedDate(day.dateObj);
-  };
-
-  // Función para seleccionar fecha del calendario
-  const selectCalendarDate = (date: Date): void => {
-    const weekStart = getWeekStart(date);
-    setCurrentWeekStart(weekStart);
-    setSelectedDate(date);
-    setShowCalendar(false);
-  };
-
-  // Función para seleccionar fecha en asistencias
-  const selectAsistenciasDate = (date: Date): void => {
-    setSelectedAsistenciasDate(date);
-    setShowAsistenciasCalendar(false);
-  };
-
-  // Función para generar calendario mensual
-  const generateCalendarDays = (referenceDate: Date): CalendarDay[] => {
-    const year = referenceDate.getFullYear();
-    const month = referenceDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const startCalendar = new Date(firstDay);
-    const dayOfWeek = firstDay.getDay();
-    startCalendar.setDate(firstDay.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-    
-    const days: CalendarDay[] = [];
-    const today = new Date();
-    
-    for (let i = 0; i < 42; i++) {
-      const currentDate = new Date(startCalendar);
-      currentDate.setDate(startCalendar.getDate() + i);
-      
-      const isCurrentMonth = currentDate.getMonth() === month;
-      const isToday = currentDate.toDateString() === today.toDateString();
-      const isSelected = currentDate.toDateString() === referenceDate.toDateString();
-      
-      days.push({
-        date: new Date(currentDate),
-        day: currentDate.getDate(),
-        isCurrentMonth,
-        isToday,
-        isSelected
-      });
-    }
-    
-    return days;
-  };
-
-  // Función para obtener asistencias de la semana
-  const getWeekAttendance = (selectedDate: Date): AsistenciaSemanal[] => {
-    const weekStart = getWeekStart(selectedDate);
-    const weekData: AsistenciaSemanal[] = [];
-    
-    for (let i = 0; i < 6; i++) {
-      const currentDay = new Date(weekStart);
-      currentDay.setDate(weekStart.getDate() + i);
-      const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      
-      const randomHours = Math.random() > 0.1 ? 
-        parseFloat((7 + Math.random() * 2).toFixed(2)) : 0;
-      
-      // Simulamos datos de asistencia para la semana
-      const mockData: AsistenciaSemanal = {
-        fecha: currentDay.toISOString().split('T')[0],
-        dia: dayNames[i],
-        ingreso: i < 5 ? (Math.random() > 0.1 ? `0${8 + Math.floor(Math.random() * 2)}:${Math.floor(Math.random() * 6)}0` : "--:--") : "--:--",
-        salida: i < 5 ? (Math.random() > 0.1 ? "18:00" : "--:--") : "--:--",
-        estado: i < 5 ? (Math.random() > 0.8 ? "Falta" : Math.random() > 0.7 ? "Tardanza" : Math.random() > 0.1 ? "Puntual" : "Incompleto") : "Descanso",
-        horasTrabajadas: i < 5 ? randomHours : 0
-      };
-      
-      weekData.push(mockData);
-    }
-    
-    return weekData;
-  };
-
-  // Función para obtener actividades del día seleccionado
-  const getActivitiesForDate = (date: Date): string[] => {
-    const dateKey = date.toISOString().split('T')[0];
-    return actividadesDataBase[dateKey] || [];
-  };
-
-  // Función para formatear el nombre del día seleccionado
-  const getSelectedDayName = (): string => {
-    const days = generateWeekDays(currentWeekStart);
-    const selectedDay = days.find((day: DiasSemana) => day.fecha === selectedDate.toISOString().split('T')[0]);
-    if (selectedDay) {
-      return `${selectedDay.nombre} ${selectedDay.numero}`;
-    }
-    return '';
-  };
-
-  // Inicializar con la semana actual al cargar el componente
   useEffect(() => {
     const today = new Date();
     const weekStart = getWeekStart(today);
@@ -298,157 +89,419 @@ export default function EmpleadoPerfil() {
     setSelectedDate(today);
   }, []);
 
-  const getEstadoStyle = (estado: string) => {
-    switch (estado) {
-      case "Puntual":
-        return { backgroundColor: "#dcfce7", color: "#166534", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "500" };
-      case "Tardanza":
-        return { backgroundColor: "#fef3c7", color: "#92400e", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "500" };
-      case "Falta":
-        return { backgroundColor: "#fee2e2", color: "#991b1b", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "500" };
-      case "Incompleto":
-        return { backgroundColor: "#fef3c7", color: "#92400e", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "500" };
-      case "Descanso":
-        return { backgroundColor: "#f3f4f6", color: "#374151", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "500" };
-      default:
-        return { backgroundColor: "#f3f4f6", color: "#374151", padding: "4px 12px", borderRadius: "12px", fontSize: "12px", fontWeight: "500" };
+  const getWeekStart = (date: Date): Date => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+  };
+
+  const generateWeekDays = (startDate: Date) => {
+    const days = [];
+    const today = new Date();
+    for (let i = 0; i < 6; i++) {
+      const currentDay = new Date(startDate);
+      currentDay.setDate(startDate.getDate() + i);
+      const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      days.push({
+        nombre: dayNames[i],
+        numero: currentDay.getDate().toString(),
+        fecha: currentDay.toISOString().split('T')[0],
+        activo: currentDay.toDateString() === selectedDate.toDateString(),
+        isToday: currentDay.toDateString() === today.toDateString(),
+        dateObj: currentDay
+      });
+    }
+    return days;
+  };
+
+  const navigateWeek = (direction: number) => {
+    const newWeekStart = new Date(currentWeekStart);
+    newWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
+    setCurrentWeekStart(newWeekStart);
+  };
+
+  const goToToday = () => {
+    const today = new Date();
+    const weekStart = getWeekStart(today);
+    setCurrentWeekStart(weekStart);
+    setSelectedDate(today);
+  };
+
+  const selectDateFromCalendar = (day: number, isActividades: boolean = false) => {
+    const month = isActividades ? actividadesCalendarMonth : calendarMonth;
+    const year = isActividades ? actividadesCalendarYear : calendarYear;
+    const selected = new Date(year, month, day);
+    
+    if (isActividades) {
+      setSelectedDate(selected);
+      const weekStart = getWeekStart(selected);
+      setCurrentWeekStart(weekStart);
+      setShowActividadesCalendar(false);
+    } else {
+      const weekStart = getWeekStart(selected);
+      setCurrentWeekStart(weekStart);
+      setSelectedDate(selected);
+      setShowCalendar(false);
     }
   };
 
-  const diasSemana = generateWeekDays(currentWeekStart);
-  const activitiesForSelectedDate = getActivitiesForDate(selectedDate);
-  const weekAttendanceData = getWeekAttendance(selectedAsistenciasDate);
-  const calendarDays = generateCalendarDays(showCalendar ? selectedDate : selectedAsistenciasDate);
-  
-  const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  const getDiasDelMes = (mes: number, ano: number) => {
+    const primerDia = new Date(ano, mes, 1).getDay();
+    const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+    const dias = [];
+    const ajustePrimerDia = primerDia === 0 ? 6 : primerDia - 1;
+
+    for (let i = 0; i < ajustePrimerDia; i++) {
+      dias.push(null);
+    }
+
+    for (let i = 1; i <= ultimoDia; i++) {
+      dias.push(i);
+    }
+
+    return dias;
+  };
+
+  const cambiarMes = (direccion: number, isActividades: boolean = false) => {
+    if (isActividades) {
+      let nuevoMes = actividadesCalendarMonth + direccion;
+      let nuevoAno = actividadesCalendarYear;
+
+      if (nuevoMes > 11) {
+        nuevoMes = 0;
+        nuevoAno++;
+      } else if (nuevoMes < 0) {
+        nuevoMes = 11;
+        nuevoAno--;
+      }
+
+      setActividadesCalendarMonth(nuevoMes);
+      setActividadesCalendarYear(nuevoAno);
+    } else {
+      let nuevoMes = calendarMonth + direccion;
+      let nuevoAno = calendarYear;
+
+      if (nuevoMes > 11) {
+        nuevoMes = 0;
+        nuevoAno++;
+      } else if (nuevoMes < 0) {
+        nuevoMes = 11;
+        nuevoAno--;
+      }
+
+      setCalendarMonth(nuevoMes);
+      setCalendarYear(nuevoAno);
+    }
+  };
+
+  const formatWeekRange = () => {
+    const start = new Date(currentWeekStart);
+    const end = new Date(currentWeekStart);
+    end.setDate(start.getDate() + 5);
+    
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    
+    if (start.getMonth() === end.getMonth()) {
+      return `${start.getDate()} - ${end.getDate()} ${meses[start.getMonth()]}`;
+    } else {
+      return `${start.getDate()} ${meses[start.getMonth()]} - ${end.getDate()} ${meses[end.getMonth()]}`;
+    }
+  };
+
+  const handleEditClick = () => {
+    setFormEdit({ ...empleado });
+    setPhotoPreview(null);
+    setShowEditModal(true);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormEdit(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor selecciona una imagen válida');
+        return;
+      }
+      
+      if (file.size > 10 * 1024 * 1024) {
+        alert('La imagen debe ser menor a 10MB');
+        return;
+      }
+
+      setFormEdit(prev => ({ ...prev, foto: file }));
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPhotoPreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setFormEdit(prev => ({ ...prev, foto: null }));
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmpleado({ ...formEdit });
+    setShowEditModal(false);
+    setPhotoPreview(null);
+  };
+
+  const mockAsistencias = [
+    { dia: "Lunes", fecha: "2024-09-30", ingreso: "09:00", salida: "18:00", estado: "Puntual", horas: 8 },
+    { dia: "Martes", fecha: "2024-10-01", ingreso: "09:15", salida: "18:00", estado: "Tardanza", horas: 7.75 },
+    { dia: "Miércoles", fecha: "2024-10-02", ingreso: "--:--", salida: "--:--", estado: "Falta", horas: 0 },
+    { dia: "Jueves", fecha: "2024-10-03", ingreso: "09:00", salida: "18:00", estado: "Puntual", horas: 8 },
+    { dia: "Viernes", fecha: "2024-10-04", ingreso: "09:00", salida: "17:30", estado: "Puntual", horas: 7.5 },
+    { dia: "Sábado", fecha: "2024-10-05", ingreso: "--:--", salida: "--:--", estado: "Descanso", horas: 0 }
   ];
 
-  return (
-    <div style={{ display: "flex", height: "100vh", backgroundColor: "#f8fafc" }}>
-      <Sidebar />
-      <main style={{ flex: 1, overflow: "auto" }}>
-        <div style={{ padding: "32px" }}>
-          {/* Breadcrumb */}
-          <nav style={{ marginBottom: "24px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}>
-              <Link href="/personal" style={{ color: "#3b82f6", textDecoration: "none" }}>
-                Personal
-              </Link>
-              <span style={{ color: "#9ca3af" }}>/</span>
-              <span style={{ color: "#6b7280" }}>Perfil de empleado</span>
-            </div>
-          </nav>
+  const getEstadoStyle = (estado: string) => {
+    const styles: { [key: string]: React.CSSProperties } = {
+      "Puntual": { backgroundColor: "#dcfce7", color: "#166534" },
+      "Tardanza": { backgroundColor: "#fef3c7", color: "#92400e" },
+      "Falta": { backgroundColor: "#fee2e2", color: "#991b1b" },
+      "Descanso": { backgroundColor: isDarkMode ? "#334155" : "#f3f4f6", color: isDarkMode ? "#94a3b8" : "#6b7280" }
+    };
+    return { 
+      ...(styles[estado] || {}), 
+      padding: "4px 12px", 
+      borderRadius: "12px", 
+      fontSize: "12px", 
+      fontWeight: "500" as const
+    };
+  };
 
-          {/* Header del perfil */}
+  const diasSemana = generateWeekDays(currentWeekStart);
+  const activitiesForSelectedDate = actividadesDataBase[selectedDate.toISOString().split('T')[0]] || [];
+  
+  const diasDelMes = getDiasDelMes(calendarMonth, calendarYear);
+  const diasDelMesActividades = getDiasDelMes(actividadesCalendarMonth, actividadesCalendarYear);
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const diasSemanaCortos = ["L", "M", "M", "J", "V", "S", "D"];
+
+  const CalendarComponent = ({ isActividades = false }) => {
+    const month = isActividades ? actividadesCalendarMonth : calendarMonth;
+    const year = isActividades ? actividadesCalendarYear : calendarYear;
+    const dias = isActividades ? diasDelMesActividades : diasDelMes;
+
+    return (
+      <div style={{
+        position: "absolute",
+        top: "100%",
+        right: 0,
+        marginTop: "8px",
+        backgroundColor: theme.cardBg,
+        border: `1px solid ${theme.border}`,
+        borderRadius: "12px",
+        boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+        padding: "16px",
+        zIndex: 1000,
+        minWidth: isMobile ? "280px" : "300px"
+      }}>
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "12px"
+        }}>
+          <button
+            onClick={() => cambiarMes(-1, isActividades)}
+            style={{
+              padding: "6px 10px",
+              border: `1px solid ${theme.border}`,
+              borderRadius: "4px",
+              backgroundColor: theme.cardBg,
+              cursor: "pointer",
+              fontSize: "12px",
+              color: theme.textSecondary
+            }}
+          >
+            <FaChevronLeft />
+          </button>
+          
+          <h3 style={{ fontSize: "14px", fontWeight: "600", color: theme.text, margin: 0 }}>
+            {meses[month]} {year}
+          </h3>
+
+          <button
+            onClick={() => cambiarMes(1, isActividades)}
+            style={{
+              padding: "6px 10px",
+              border: `1px solid ${theme.border}`,
+              borderRadius: "4px",
+              backgroundColor: theme.cardBg,
+              cursor: "pointer",
+              fontSize: "12px",
+              color: theme.textSecondary
+            }}
+          >
+            <FaChevronRight />
+          </button>
+        </div>
+
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: "4px",
+          marginBottom: "8px"
+        }}>
+          {diasSemanaCortos.map((dia, index) => (
+            <div key={index} style={{
+              textAlign: "center",
+              fontSize: "10px",
+              fontWeight: "600",
+              color: theme.textSecondary,
+              padding: "4px 0"
+            }}>
+              {dia}
+            </div>
+          ))}
+        </div>
+
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: "2px"
+        }}>
+          {dias.map((dia, index) => (
+            <button
+              key={index}
+              onClick={() => dia && selectDateFromCalendar(dia, isActividades)}
+              disabled={!dia}
+              style={{
+                height: "32px",
+                border: "none",
+                borderRadius: "4px",
+                backgroundColor: dia && selectedDate.getDate() === dia && selectedDate.getMonth() === month && selectedDate.getFullYear() === year
+                  ? theme.primary
+                  : "transparent",
+                color: dia && selectedDate.getDate() === dia && selectedDate.getMonth() === month && selectedDate.getFullYear() === year
+                  ? "#ffffff"
+                  : dia ? theme.text : theme.textSecondary,
+                fontSize: "12px",
+                cursor: dia ? "pointer" : "default"
+              }}
+            >
+              {dia || ""}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ display: "flex", height: "100vh", backgroundColor: theme.bg, flexDirection: isMobile ? "column" : "row" }}>
+      <Sidebar />
+      
+      <main style={{ flex: 1, overflow: "auto" }}>
+        <div style={{ padding: isMobile ? "16px" : "32px" }}>
+          {!isMobile && (
+            <nav style={{ marginBottom: "24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}>
+                <Link href="/personal" style={{ color: "#3b82f6", textDecoration: "none" }}>Personal</Link>
+                <span style={{ color: "#9ca3af" }}>/</span>
+                <span style={{ color: "#6b7280" }}>Perfil de empleado</span>
+              </div>
+            </nav>
+          )}
+
           <div style={{
-            backgroundColor: "#ffffff",
+            backgroundColor: theme.cardBg,
             borderRadius: "12px",
-            padding: "32px",
-            border: "1px solid #e5e7eb",
+            padding: isMobile ? "20px" : "32px",
+            border: `1px solid ${theme.border}`,
             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             marginBottom: "24px"
           }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+            <div style={{ 
+              display: "flex", 
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "center" : "center", 
+              justifyContent: "space-between",
+              gap: isMobile ? "16px" : "20px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "20px", flexDirection: isMobile ? "column" : "row", textAlign: isMobile ? "center" : "left" }}>
                 <div style={{
-                  width: "80px",
-                  height: "80px",
+                  width: isMobile ? "100px" : "80px",
+                  height: isMobile ? "100px" : "80px",
                   borderRadius: "50%",
                   backgroundColor: "#f59e0b",
-                  backgroundImage: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  overflow: "hidden"
+                  fontSize: isMobile ? "40px" : "32px"
                 }}>
-                  <div style={{
-                    width: "72px",
-                    height: "72px",
-                    borderRadius: "50%",
-                    backgroundColor: "#fbbf24",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "32px",
-                    color: "#ffffff"
-                  }}>
-                    👤
-                  </div>
+                  👤
                 </div>
                 <div>
-                  <h1 style={{ 
-                    fontSize: "28px", 
-                    fontWeight: "700", 
-                    color: "#1f2937",
-                    margin: "0 0 4px 0"
-                  }}>
-                    {empleadoData.nombre}
+                  <h1 style={{ fontSize: isMobile ? "22px" : "28px", fontWeight: "700", color: theme.text, margin: "0 0 4px 0" }}>
+                    {empleado.nombre} {empleado.apellidos}
                   </h1>
-                  <p style={{ 
-                    fontSize: "14px", 
-                    color: "#6b7280",
-                    margin: "0 0 2px 0"
-                  }}>
-                    DNI: {empleadoData.dni}
-                  </p>
-                  <p style={{ 
-                    fontSize: "14px", 
-                    color: "#6b7280",
-                    margin: 0
-                  }}>
-                    Cargo: {empleadoData.cargo}
-                  </p>
+                  <p style={{ fontSize: "14px", color: theme.textSecondary, margin: "0 0 2px 0" }}>DNI: {empleado.dni}</p>
+                  <p style={{ fontSize: "14px", color: theme.textSecondary, margin: 0 }}>Cargo: {empleado.cargo}</p>
                 </div>
               </div>
               
-              <button style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                backgroundColor: "#1d4ed8",
-                color: "#ffffff",
-                padding: "10px 16px",
-                borderRadius: "8px",
-                border: "none",
-                fontSize: "14px",
-                fontWeight: "500",
-                cursor: "pointer",
-                transition: "all 0.2s ease"
-              }}>
-                <FaEdit />
-                Editar
+              <button 
+                onClick={handleEditClick}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  backgroundColor: theme.primary,
+                  color: "#ffffff",
+                  padding: "10px 16px",
+                  borderRadius: "8px",
+                  border: "none",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  width: isMobile ? "100%" : "auto"
+                }}
+              >
+                <FaEdit /> Editar
               </button>
             </div>
           </div>
 
-          {/* Pestañas */}
           <div style={{
-            backgroundColor: "#ffffff",
+            backgroundColor: theme.cardBg,
             borderRadius: "12px",
-            border: "1px solid #e5e7eb",
+            border: `1px solid ${theme.border}`,
             boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
           }}>
-            {/* Header de pestañas */}
             <div style={{
-              borderBottom: "1px solid #e5e7eb",
-              padding: "0 32px"
+              borderBottom: `1px solid ${theme.border}`,
+              padding: isMobile ? "0 16px" : "0 32px",
+              overflowX: "auto"
             }}>
-              <div style={{ display: "flex" }}>
+              <div style={{ display: "flex", minWidth: "min-content" }}>
                 <button
                   onClick={() => setActiveTab('asistencias')}
                   style={{
-                    padding: "16px 0",
-                    marginRight: "32px",
+                    padding: isMobile ? "12px 16px" : "16px 0",
+                    marginRight: isMobile ? "16px" : "32px",
                     backgroundColor: "transparent",
                     border: "none",
-                    fontSize: "16px",
+                    fontSize: isMobile ? "14px" : "16px",
                     fontWeight: "500",
-                    color: activeTab === 'asistencias' ? "#1d4ed8" : "#6b7280",
+                    color: activeTab === 'asistencias' ? theme.primary : theme.textSecondary,
                     cursor: "pointer",
-                    borderBottom: activeTab === 'asistencias' ? "2px solid #1d4ed8" : "2px solid transparent",
-                    transition: "all 0.2s ease"
+                    borderBottom: activeTab === 'asistencias' ? `2px solid ${theme.primary}` : "2px solid transparent",
+                    whiteSpace: "nowrap"
                   }}
                 >
                   Asistencias
@@ -456,15 +509,15 @@ export default function EmpleadoPerfil() {
                 <button
                   onClick={() => setActiveTab('actividades')}
                   style={{
-                    padding: "16px 0",
+                    padding: isMobile ? "12px 16px" : "16px 0",
                     backgroundColor: "transparent",
                     border: "none",
-                    fontSize: "16px",
+                    fontSize: isMobile ? "14px" : "16px",
                     fontWeight: "500",
-                    color: activeTab === 'actividades' ? "#1d4ed8" : "#6b7280",
+                    color: activeTab === 'actividades' ? theme.primary : theme.textSecondary,
                     cursor: "pointer",
-                    borderBottom: activeTab === 'actividades' ? "2px solid #1d4ed8" : "2px solid transparent",
-                    transition: "all 0.2s ease"
+                    borderBottom: activeTab === 'actividades' ? `2px solid ${theme.primary}` : "2px solid transparent",
+                    whiteSpace: "nowrap"
                   }}
                 >
                   Actividades
@@ -472,202 +525,176 @@ export default function EmpleadoPerfil() {
               </div>
             </div>
 
-            {/* Contenido de las pestañas */}
-            <div style={{ padding: "32px" }}>
+            <div style={{ padding: isMobile ? "16px" : "32px" }}>
               {activeTab === 'asistencias' && (
                 <div>
-                  {/* Header de asistencias */}
-                  <div style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "center",
-                    marginBottom: "24px"
+                  <div style={{
+                    display: "flex",
+                    flexDirection: isMobile ? "column" : "row",
+                    justifyContent: "space-between",
+                    alignItems: isMobile ? "stretch" : "center",
+                    marginBottom: "24px",
+                    gap: isMobile ? "12px" : "0"
                   }}>
-                    <h2 style={{ 
-                      fontSize: "20px", 
-                      fontWeight: "600", 
-                      color: "#1f2937",
-                      margin: 0
-                    }}>
-                      Asistencias
+                    <h2 style={{ fontSize: isMobile ? "16px" : "20px", fontWeight: "600", color: theme.text, margin: 0 }}>
+                      {formatWeekRange()}
                     </h2>
-                    <div style={{ display: "flex", gap: "12px" }}>
+                    
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: isMobile ? "center" : "flex-end" }}>
+                      <button
+                        onClick={() => navigateWeek(-1)}
+                        style={{
+                          padding: "8px",
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: "6px",
+                          backgroundColor: theme.cardBg,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: theme.textSecondary
+                        }}
+                      >
+                        <FaChevronLeft />
+                      </button>
+                      
+                      <button
+                        onClick={goToToday}
+                        style={{
+                          padding: "8px 12px",
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: "6px",
+                          backgroundColor: theme.cardBg,
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          color: theme.textSecondary,
+                          whiteSpace: "nowrap"
+                        }}
+                      >
+                        Hoy
+                      </button>
+                      
+                      <button
+                        onClick={() => navigateWeek(1)}
+                        style={{
+                          padding: "8px",
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: "6px",
+                          backgroundColor: theme.cardBg,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: theme.textSecondary
+                        }}
+                      >
+                        <FaChevronRight />
+                      </button>
+                      
                       <div style={{ position: "relative" }}>
-                        <input
-                          type="text"
-                          placeholder="Buscar..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
+                        <button
+                          onClick={() => setShowCalendar(!showCalendar)}
                           style={{
-                            padding: "8px 12px 8px 36px",
-                            border: "1px solid #d1d5db",
+                            padding: "8px",
+                            border: `1px solid ${theme.border}`,
                             borderRadius: "6px",
-                            fontSize: "14px",
-                            outline: "none",
-                            width: "200px"
-                          }}
-                        />
-                        <FaSearch style={{
-                          position: "absolute",
-                          left: "12px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          color: "#9ca3af",
-                          fontSize: "12px"
-                        }} />
-                      </div>
-                      <div style={{ position: "relative" }}>
-                        <button 
-                          onClick={() => setShowAsistenciasCalendar(!showAsistenciasCalendar)}
-                          style={{
+                            backgroundColor: theme.cardBg,
+                            cursor: "pointer",
                             display: "flex",
                             alignItems: "center",
-                            gap: "6px",
-                            padding: "8px 12px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            backgroundColor: "#ffffff",
-                            fontSize: "14px",
-                            color: "#6b7280",
-                            cursor: "pointer"
+                            justifyContent: "center",
+                            color: theme.textSecondary
                           }}
                         >
-                          <FaFilter />
-                          {selectedAsistenciasDate.getDate()} de {months[selectedAsistenciasDate.getMonth()]} {selectedAsistenciasDate.getFullYear()}
+                          <FaCalendarAlt />
                         </button>
                         
-                        {showAsistenciasCalendar && (
-                          <div style={{
-                            position: "absolute",
-                            top: "100%",
-                            right: "0",
-                            marginTop: "8px",
-                            backgroundColor: "#ffffff",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "12px",
-                            boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                            padding: "16px",
-                            zIndex: 1000,
-                            minWidth: "280px"
-                          }}>
-                            <div style={{ 
-                              textAlign: "center", 
-                              marginBottom: "12px",
-                              fontSize: "16px",
-                              fontWeight: "600",
-                              color: "#1f2937"
-                            }}>
-                              {months[selectedAsistenciasDate.getMonth()]} {selectedAsistenciasDate.getFullYear()}
-                            </div>
-                            
-                            <div style={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(7, 1fr)",
-                              gap: "4px",
-                              marginBottom: "8px"
-                            }}>
-                              {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(day => (
-                                <div key={day} style={{
-                                  textAlign: "center",
-                                  fontSize: "12px",
-                                  fontWeight: "500",
-                                  color: "#6b7280",
-                                  padding: "4px"
-                                }}>
-                                  {day}
-                                </div>
-                              ))}
-                            </div>
-                            
-                            <div style={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(7, 1fr)",
-                              gap: "2px"
-                            }}>
-                              {calendarDays.map((day, index) => (
-                                <button
-                                  key={index}
-                                  onClick={() => selectAsistenciasDate(day.date)}
-                                  style={{
-                                    padding: "8px 4px",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    backgroundColor: day.isSelected ? "#1d4ed8" : day.isToday ? "#eff6ff" : "transparent",
-                                    color: day.isSelected ? "#ffffff" : day.isToday ? "#1d4ed8" : day.isCurrentMonth ? "#374151" : "#d1d5db",
-                                    fontSize: "14px",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s ease"
-                                  }}
-                                >
-                                  {day.day}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        {showCalendar && <CalendarComponent isActividades={false} />}
                       </div>
                     </div>
                   </div>
 
-                  {/* Tabla de asistencias */}
-                  <div style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                    overflow: "hidden"
-                  }}>
-                    {/* Header de tabla */}
-                    <div style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr",
-                      padding: "16px 20px",
-                      backgroundColor: "#f9fafb",
-                      borderBottom: "1px solid #e5e7eb",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      color: "#6b7280",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em"
-                    }}>
-                      <div>Día</div>
-                      <div>Fecha</div>
-                      <div>Ingreso</div>
-                      <div>Salida</div>
-                      <div>Estado</div>
-                      <div>Horas Trabajadas</div>
-                    </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {mockAsistencias.map((asistencia, index) => (
+                      <div key={index} style={{
+                        backgroundColor: isDarkMode ? "#0f172a" : "#f9fafb",
+                        borderRadius: "8px",
+                        padding: isMobile ? "16px" : "16px",
+                        border: `1px solid ${theme.border}`
+                      }}>
+                        {isMobile ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div>
+                                <div style={{ fontSize: "16px", fontWeight: "600", color: theme.text }}>
+                                  {asistencia.dia}
+                                </div>
+                                <div style={{ fontSize: "12px", color: theme.textSecondary }}>
+                                  {asistencia.fecha}
+                                </div>
+                              </div>
+                              <span style={getEstadoStyle(asistencia.estado)}>
+                                {asistencia.estado}
+                              </span>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                              <div style={{ backgroundColor: theme.cardBg, padding: "8px", borderRadius: "6px", border: `1px solid ${theme.border}` }}>
+                                <div style={{ fontSize: "11px", color: theme.textSecondary, marginBottom: "2px" }}>Ingreso</div>
+                                <div style={{ fontSize: "16px", color: theme.text, fontWeight: "600" }}>{asistencia.ingreso}</div>
+                              </div>
+                              <div style={{ backgroundColor: theme.cardBg, padding: "8px", borderRadius: "6px", border: `1px solid ${theme.border}` }}>
+                                <div style={{ fontSize: "11px", color: theme.textSecondary, marginBottom: "2px" }}>Salida</div>
+                                <div style={{ fontSize: "16px", color: theme.text, fontWeight: "600" }}>{asistencia.salida}</div>
+                              </div>
+                            </div>
+                            <div style={{ backgroundColor: theme.cardBg, padding: "8px", borderRadius: "6px", border: `1px solid ${theme.border}`, textAlign: "center" }}>
+                              <div style={{ fontSize: "11px", color: theme.textSecondary, marginBottom: "2px" }}>Total Horas</div>
+                              <div style={{ fontSize: "18px", color: theme.primary, fontWeight: "700" }}>{asistencia.horas}h</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                              <div style={{ fontSize: "16px", fontWeight: "600", color: theme.text, minWidth: "90px" }}>
+                                {asistencia.dia}
+                              </div>
+                              <div style={{ fontSize: "13px", color: theme.textSecondary }}>
+                                {asistencia.fecha}
+                              </div>
+                            </div>
 
-                    {/* Filas de asistencias */}
-                    {weekAttendanceData.map((asistencia, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr",
-                          padding: "16px 20px",
-                          borderBottom: index < weekAttendanceData.length - 1 ? "1px solid #f3f4f6" : "none",
-                          alignItems: "center"
-                        }}
-                      >
-                        <div style={{ fontSize: "14px", color: "#1f2937", fontWeight: "500" }}>
-                          {asistencia.dia}
-                        </div>
-                        <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                          {asistencia.fecha}
-                        </div>
-                        <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                          {asistencia.ingreso}
-                        </div>
-                        <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                          {asistencia.salida}
-                        </div>
-                        <div>
-                          <span style={getEstadoStyle(asistencia.estado)}>
-                            {asistencia.estado}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: "14px", color: "#1f2937", fontWeight: "500" }}>
-                          {asistencia.horasTrabajadas}
-                        </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ fontSize: "12px", color: theme.textSecondary }}>Ingreso:</span>
+                                <span style={{ fontSize: "14px", color: theme.text, fontWeight: "500" }}>
+                                  {asistencia.ingreso}
+                                </span>
+                              </div>
+                              
+                              <span style={{ color: theme.border }}>-</span>
+                              
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ fontSize: "12px", color: theme.textSecondary }}>Salida:</span>
+                                <span style={{ fontSize: "14px", color: theme.text, fontWeight: "500" }}>
+                                  {asistencia.salida}
+                                </span>
+                              </div>
+                              
+                              <span style={{ color: theme.border }}>-</span>
+                              
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ fontSize: "12px", color: theme.textSecondary }}>Horas:</span>
+                                <span style={{ fontSize: "14px", color: theme.text, fontWeight: "600" }}>
+                                  {asistencia.horas}h
+                                </span>
+                              </div>
+                              
+                              <span style={getEstadoStyle(asistencia.estado)}>
+                                {asistencia.estado}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -676,255 +703,85 @@ export default function EmpleadoPerfil() {
 
               {activeTab === 'actividades' && (
                 <div>
-                  {/* Header con navegación de semanas */}
-                  <div style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "center",
-                    marginBottom: "24px"
-                  }}>
-                    <div>
-                      <h2 style={{ 
-                        fontSize: "20px", 
-                        fontWeight: "600", 
-                        color: "#1f2937",
-                        margin: "0 0 4px 0"
-                      }}>
-                        Actividades Semanales
-                      </h2>
-                      <p style={{ 
-                        fontSize: "14px", 
-                        color: "#6b7280",
-                        margin: 0
-                      }}>
-                        {formatWeekRange(currentWeekStart)}
-                      </p>
-                    </div>
+                  <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", marginBottom: "20px", gap: "12px" }}>
+                    <h2 style={{ fontSize: isMobile ? "18px" : "20px", fontWeight: "600", color: theme.text, margin: 0 }}>
+                      Semana Actual
+                    </h2>
                     
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                      <button 
-                        onClick={() => navigateWeek(-1)}
+                    <div style={{ position: "relative" }}>
+                      <button
+                        onClick={() => setShowActividadesCalendar(!showActividadesCalendar)}
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
-                          width: "36px",
-                          height: "36px",
-                          border: "1px solid #d1d5db",
+                          gap: "8px",
+                          padding: "8px 16px",
+                          border: `1px solid ${theme.border}`,
                           borderRadius: "6px",
-                          backgroundColor: "#ffffff",
+                          backgroundColor: theme.cardBg,
+                          color: theme.text,
+                          fontSize: "13px",
                           cursor: "pointer",
-                          transition: "all 0.2s ease"
+                          outline: "none"
                         }}
                       >
-                        <FaChevronLeft style={{ fontSize: "12px", color: "#6b7280" }} />
+                        <FaCalendarAlt style={{ fontSize: "12px" }} />
+                        Filtrar por fecha
                       </button>
                       
-                      <div style={{ position: "relative" }}>
-                        <button 
-                          onClick={() => setShowCalendar(!showCalendar)}
-                          style={{
-                            padding: "6px 12px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            backgroundColor: "#ffffff",
-                            fontSize: "12px",
-                            color: "#6b7280",
-                            cursor: "pointer",
-                            transition: "all 0.2s ease",
-                            minWidth: "120px"
-                          }}
-                        >
-                          📅 {selectedDate.getDate()} de {months[selectedDate.getMonth()]}
-                        </button>
-                        
-                        {showCalendar && (
-                          <div style={{
-                            position: "absolute",
-                            top: "100%",
-                            right: "0",
-                            marginTop: "8px",
-                            backgroundColor: "#ffffff",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "12px",
-                            boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                            padding: "16px",
-                            zIndex: 1000,
-                            minWidth: "280px"
-                          }}>
-                            <div style={{ 
-                              textAlign: "center", 
-                              marginBottom: "12px",
-                              fontSize: "16px",
-                              fontWeight: "600",
-                              color: "#1f2937"
-                            }}>
-                              {months[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-                            </div>
-                            
-                            <div style={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(7, 1fr)",
-                              gap: "4px",
-                              marginBottom: "8px"
-                            }}>
-                              {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(day => (
-                                <div key={day} style={{
-                                  textAlign: "center",
-                                  fontSize: "12px",
-                                  fontWeight: "500",
-                                  color: "#6b7280",
-                                  padding: "4px"
-                                }}>
-                                  {day}
-                                </div>
-                              ))}
-                            </div>
-                            
-                            <div style={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(7, 1fr)",
-                              gap: "2px"
-                            }}>
-                              {calendarDays.map((day, index) => (
-                                <button
-                                  key={index}
-                                  onClick={() => selectCalendarDate(day.date)}
-                                  style={{
-                                    padding: "8px 4px",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    backgroundColor: day.isSelected ? "#1d4ed8" : day.isToday ? "#eff6ff" : "transparent",
-                                    color: day.isSelected ? "#ffffff" : day.isToday ? "#1d4ed8" : day.isCurrentMonth ? "#374151" : "#d1d5db",
-                                    fontSize: "14px",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s ease"
-                                  }}
-                                >
-                                  {day.day}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <button 
-                        onClick={() => {
-                          const today = new Date();
-                          const weekStart = getWeekStart(today);
-                          setCurrentWeekStart(weekStart);
-                          setSelectedDate(today);
-                        }}
-                        style={{
-                          padding: "6px 12px",
-                          border: "1px solid #d1d5db",
-                          borderRadius: "6px",
-                          backgroundColor: "#ffffff",
-                          fontSize: "12px",
-                          color: "#6b7280",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease"
-                        }}
-                      >
-                        Hoy
-                      </button>
-                      
-                      <button 
-                        onClick={() => navigateWeek(1)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: "36px",
-                          height: "36px",
-                          border: "1px solid #d1d5db",
-                          borderRadius: "6px",
-                          backgroundColor: "#ffffff",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease"
-                        }}
-                      >
-                        <FaChevronRight style={{ fontSize: "12px", color: "#6b7280" }} />
-                      </button>
+                      {showActividadesCalendar && <CalendarComponent isActividades={true} />}
                     </div>
                   </div>
 
-                  {/* Calendario semanal */}
-                  <div style={{ marginBottom: "32px" }}>
+                  <div style={{ marginBottom: "24px", overflowX: "auto" }}>
                     <div style={{ 
                       display: "grid", 
-                      gridTemplateColumns: "repeat(6, 1fr)", 
-                      gap: "12px"
+                      gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(6, 1fr)", 
+                      gap: isMobile ? "8px" : "12px"
                     }}>
                       {diasSemana.map((dia, index) => (
                         <div
                           key={index}
-                          onClick={() => selectDay(dia)}
+                          onClick={() => setSelectedDate(dia.dateObj)}
                           style={{
                             textAlign: "center",
-                            padding: "16px 12px",
+                            padding: isMobile ? "12px 8px" : "16px 12px",
                             borderRadius: "8px",
-                            backgroundColor: dia.activo ? "#1d4ed8" : (dia.isToday ? "#eff6ff" : "#ffffff"),
-                            border: dia.isToday && !dia.activo ? "2px solid #3b82f6" : "1px solid #e5e7eb",
-                            color: dia.activo ? "#ffffff" : (dia.isToday ? "#1d4ed8" : "#6b7280"),
-                            fontSize: "14px",
+                            backgroundColor: dia.activo ? theme.primary : (dia.isToday ? (isDarkMode ? "#1e3a8a" : "#eff6ff") : theme.cardBg),
+                            border: dia.isToday && !dia.activo ? `2px solid ${theme.primary}` : `1px solid ${theme.border}`,
+                            color: dia.activo ? "#ffffff" : (dia.isToday ? theme.primary : theme.text),
+                            fontSize: isMobile ? "12px" : "14px",
                             cursor: "pointer",
-                            transition: "all 0.2s ease",
-                            position: "relative"
+                            transition: "all 0.2s"
                           }}
                         >
                           <div style={{ fontWeight: "500" }}>{dia.nombre}</div>
-                          <div style={{ 
-                            fontSize: "20px", 
-                            fontWeight: "700", 
-                            marginTop: "4px" 
-                          }}>
+                          <div style={{ fontSize: isMobile ? "18px" : "20px", fontWeight: "700", marginTop: "4px" }}>
                             {dia.numero}
                           </div>
-                          {dia.isToday && !dia.activo && (
-                            <div style={{
-                              position: "absolute",
-                              top: "4px",
-                              right: "4px",
-                              width: "6px",
-                              height: "6px",
-                              backgroundColor: "#3b82f6",
-                              borderRadius: "50%"
-                            }} />
-                          )}
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Lista de actividades */}
                   <div>
-                    <h3 style={{ 
-                      fontSize: "18px", 
-                      fontWeight: "600", 
-                      color: "#1f2937",
-                      margin: "0 0 20px 0"
-                    }}>
-                      Actividades del {getSelectedDayName()}
+                    <h3 style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "600", color: theme.text, margin: "0 0 16px 0" }}>
+                      Actividades del {selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </h3>
                     
                     {activitiesForSelectedDate.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         {activitiesForSelectedDate.map((actividad, index) => (
-                          <div
-                            key={index}
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: "12px",
-                              padding: "16px 0",
-                              borderBottom: index < activitiesForSelectedDate.length - 1 ? "1px solid #f3f4f6" : "none"
-                            }}
-                          >
+                          <div key={index} style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "12px",
+                            padding: "12px 0",
+                            borderBottom: index < activitiesForSelectedDate.length - 1 ? `1px solid ${theme.border}` : "none"
+                          }}>
                             <div style={{
-                              width: "24px",
-                              height: "24px",
+                              width: "20px",
+                              height: "20px",
                               borderRadius: "50%",
                               backgroundColor: "#dcfce7",
                               display: "flex",
@@ -935,13 +792,8 @@ export default function EmpleadoPerfil() {
                             }}>
                               <FaCheck style={{ fontSize: "10px", color: "#166534" }} />
                             </div>
-                            <p style={{ 
-                              fontSize: "14px", 
-                              color: "#374151",
-                              margin: 0,
-                              lineHeight: "1.5"
-                            }}>
-                              {actividad}
+                            <p style={{ fontSize: isMobile ? "13px" : "14px", color: theme.text, margin: 0, lineHeight: "1.5" }}>
+                              {actividad.texto}
                             </p>
                           </div>
                         ))}
@@ -949,15 +801,15 @@ export default function EmpleadoPerfil() {
                     ) : (
                       <div style={{
                         textAlign: "center",
-                        padding: "40px 20px",
-                        color: "#9ca3af",
-                        backgroundColor: "#f9fafb",
+                        padding: isMobile ? "32px 16px" : "40px 20px",
+                        color: theme.textSecondary,
+                        backgroundColor: isDarkMode ? "#0f172a" : "#f9fafb",
                         borderRadius: "8px",
-                        border: "1px dashed #d1d5db"
+                        border: `1px dashed ${theme.border}`
                       }}>
-                        <div style={{ fontSize: "48px", marginBottom: "16px" }}>📅</div>
-                        <p style={{ fontSize: "16px", margin: "0 0 8px 0" }}>No hay actividades programadas</p>
-                        <p style={{ fontSize: "14px", margin: 0 }}>para este día</p>
+                        <div style={{ fontSize: isMobile ? "40px" : "48px", marginBottom: "12px" }}>📅</div>
+                        <p style={{ fontSize: isMobile ? "14px" : "16px", margin: "0 0 4px 0" }}>No hay actividades programadas</p>
+                        <p style={{ fontSize: isMobile ? "12px" : "14px", margin: 0 }}>para este día</p>
                       </div>
                     )}
                   </div>
@@ -967,6 +819,159 @@ export default function EmpleadoPerfil() {
           </div>
         </div>
       </main>
+
+      {showEditModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+          padding: isMobile ? "16px" : "0"
+        }}>
+          <div style={{
+            backgroundColor: theme.cardBg,
+            borderRadius: "12px",
+            padding: isMobile ? "20px" : "32px",
+            width: isMobile ? "100%" : "min(600px, 90vw)",
+            maxHeight: "90vh",
+            overflow: "auto",
+            boxShadow: "0 25px 50px rgba(0, 0, 0, 0.25)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px" }}>
+              <div style={{
+                width: isMobile ? "60px" : "80px",
+                height: isMobile ? "60px" : "80px",
+                backgroundColor: theme.hover,
+                borderRadius: "12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: isMobile ? "20px" : "24px",
+                overflow: "hidden",
+                position: "relative",
+                flexShrink: 0
+              }}>
+                {photoPreview ? (
+                  <>
+                    <img src={photoPreview} alt="Vista previa" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <button
+                      type="button"
+                      onClick={removePhoto}
+                      style={{
+                        position: "absolute",
+                        top: "4px",
+                        right: "4px",
+                        width: "20px",
+                        height: "20px",
+                        backgroundColor: "#ef4444",
+                        border: "none",
+                        borderRadius: "50%",
+                        color: "#ffffff",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                    >
+                      ×
+                    </button>
+                  </>
+                ) : "👤"}
+              </div>
+              <div style={{ flex: 1 }}>
+                <h2 style={{ fontSize: isMobile ? "18px" : "20px", fontWeight: "700", color: theme.text, margin: "0 0 8px 0" }}>
+                  Editar Empleado
+                </h2>
+                <label htmlFor="photo-upload" style={{
+                  backgroundColor: theme.hover,
+                  border: "none",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  color: theme.textSecondary,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}>
+                  📷 Cambiar Foto
+                </label>
+                <input ref={fileInputRef} id="photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
+                <p style={{ fontSize: "11px", color: theme.textSecondary, margin: "4px 0 0 0" }}>PNG, JPG hasta 10MB</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveEdit}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: theme.text, marginBottom: "6px" }}>Nombres</label>
+                  <input type="text" name="nombre" value={formEdit.nombre} onChange={handleInputChange} placeholder="Ingrese nombres" required
+                    style={{ width: "100%", padding: "10px 12px", border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "14px", outline: "none", boxSizing: "border-box", backgroundColor: theme.cardBg, color: theme.text }} />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: theme.text, marginBottom: "6px" }}>Apellidos</label>
+                  <input type="text" name="apellidos" value={formEdit.apellidos} onChange={handleInputChange} placeholder="Ingrese apellidos" required
+                    style={{ width: "100%", padding: "10px 12px", border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "14px", outline: "none", boxSizing: "border-box", backgroundColor: theme.cardBg, color: theme.text }} />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: theme.text, marginBottom: "6px" }}>DNI</label>
+                <input type="text" name="dni" value={formEdit.dni} onChange={handleInputChange} placeholder="Ingrese DNI" required
+                  style={{ width: "100%", padding: "10px 12px", border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "14px", outline: "none", boxSizing: "border-box", backgroundColor: theme.cardBg, color: theme.text }} />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: theme.text, marginBottom: "6px" }}>Área / Cargo</label>
+                  <select name="area" value={formEdit.area} onChange={handleInputChange} required
+                    style={{ width: "100%", padding: "10px 12px", border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "14px", outline: "none", backgroundColor: theme.cardBg, boxSizing: "border-box", color: theme.text }}>
+                    <option value="">Seleccione área/cargo</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Design">Design</option>
+                    <option value="Product">Product</option>
+                    <option value="Analytics">Analytics</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: theme.text, marginBottom: "6px" }}>Horario</label>
+                  <select name="horario" value={formEdit.horario} onChange={handleInputChange} required
+                    style={{ width: "100%", padding: "10px 12px", border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "14px", outline: "none", backgroundColor: theme.cardBg, boxSizing: "border-box", color: theme.text }}>
+                    <option value="">Seleccione horario</option>
+                    <option value="mañana">Mañana (8:00 - 16:00)</option>
+                    <option value="tarde">Tarde (14:00 - 22:00)</option>
+                    <option value="completo">Completo (9:00 - 18:00)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: theme.text, marginBottom: "6px" }}>Teléfono</label>
+                <input type="tel" name="telefono" value={formEdit.telefono} onChange={handleInputChange} placeholder="Ingrese número de teléfono" required
+                  style={{ width: "100%", padding: "10px 12px", border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "14px", outline: "none", boxSizing: "border-box", backgroundColor: theme.cardBg, color: theme.text }} />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: isMobile ? "column-reverse" : "row", justifyContent: "flex-end", gap: "12px" }}>
+                <button type="button" onClick={() => { setShowEditModal(false); setPhotoPreview(null); }}
+                  style={{ padding: "10px 20px", backgroundColor: theme.hover, border: "none", borderRadius: "6px", fontSize: "14px", fontWeight: "500", color: theme.textSecondary, cursor: "pointer", width: isMobile ? "100%" : "auto" }}>
+                  Cancelar
+                </button>
+                <button type="submit"
+                  style={{ padding: "10px 20px", backgroundColor: theme.primary, border: "none", borderRadius: "6px", fontSize: "14px", fontWeight: "500", color: "#ffffff", cursor: "pointer", width: isMobile ? "100%" : "auto" }}>
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

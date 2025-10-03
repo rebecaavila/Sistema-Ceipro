@@ -1,15 +1,27 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import { FaCamera, FaUpload, FaTimes, FaCheck, FaQrcode } from "react-icons/fa";
+import { useTheme } from "../components/ThemeContext";
 
 const QRScanner: React.FC = () => {
+  const { isDarkMode } = useTheme();
+
   const [isScanning, setIsScanning] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [scannedData, setScannedData] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const startCamera = async () => {
     try {
@@ -57,7 +69,6 @@ const QRScanner: React.FC = () => {
     }
   };
 
-  // Estilo base para los botones centrales
   const buttonStyleBase = {
     display: "flex",
     alignItems: "center",
@@ -74,7 +85,7 @@ const QRScanner: React.FC = () => {
   } as const;
 
   return (
-    <div style={{ display: "flex", height: "100vh", backgroundColor: "#f8fafc" }}>
+    <div style={{ display: "flex", height: "100vh", backgroundColor: isDarkMode ? "#111827" : "#f8fafc" }}>
       <Sidebar />
       <main style={{ flex: 1, position: "relative" }}>
         <div style={{
@@ -94,10 +105,10 @@ const QRScanner: React.FC = () => {
             alignItems: "center",
             justifyContent: "center"
           }}>
-            <div style={{ position: "absolute", top: 0, left: 0, width: "40px", height: "40px", borderTop: "4px solid #2563eb", borderLeft: "4px solid #2563eb", borderRadius: "9px 0 0 0" }} />
-            <div style={{ position: "absolute", top: 0, right: 0, width: "40px", height: "40px", borderTop: "4px solid #2563eb", borderRight: "4px solid #2563eb", borderRadius: "0 9px 0 0" }} />
-            <div style={{ position: "absolute", bottom: 0, left: 0, width: "40px", height: "40px", borderBottom: "4px solid #2563eb", borderLeft: "4px solid #2563eb", borderRadius: "0 0 0 9px" }} />
-            <div style={{ position: "absolute", bottom: 0, right: 0, width: "40px", height: "40px", borderBottom: "4px solid #2563eb", borderRight: "4px solid #2563eb", borderRadius: "0 0 9px 0" }} />
+            <div style={{ position: "absolute", top: 0, left: 0, width: "40px", height: "40px", borderTop: `4px solid ${isDarkMode ? "#2563eb" : "#2563eb"}`, borderLeft: `4px solid ${isDarkMode ? "#2563eb" : "#2563eb"}`, borderRadius: "9px 0 0 0" }} />
+            <div style={{ position: "absolute", top: 0, right: 0, width: "40px", height: "40px", borderTop: `4px solid ${isDarkMode ? "#2563eb" : "#2563eb"}`, borderRight:`4px solid ${isDarkMode ? "#2563eb" : "#2563eb"}`, borderRadius: "0 9px 0 0" }} />
+            <div style={{ position: "absolute", bottom: 0, left: 0, width: "40px", height: "40px", borderBottom: `4px solid ${isDarkMode ? "#2563eb" : "#2563eb"}`, borderLeft: `4px solid ${isDarkMode ? "#2563eb" : "#2563eb"}`, borderRadius: "0 0 0 9px" }} />
+            <div style={{ position: "absolute", bottom: 0, right: 0, width: "40px", height: "40px", borderBottom: `4px solid ${isDarkMode ? "#2563eb" : "#2563eb"}`, borderRight: `4px solid ${isDarkMode ? "#2563eb" : "#2563eb"}`, borderRadius: "0 0 9px 0" }} />
 
             {isScanning ? (
               <video
@@ -107,13 +118,13 @@ const QRScanner: React.FC = () => {
                 muted
               />
             ) : (
-              <FaQrcode size={64} color="#d1d5db" />
+              <FaQrcode size={64} color={isDarkMode ? "#94a3b8" : "#d1d5db"} />
             )}
           </div>
 
           <p style={{
             fontSize: "18px",
-            color: "#374151",
+            color: isDarkMode ? "#f9fafb" : "#374151",
             fontWeight: 500,
             marginBottom: "24px",
             textAlign: "center",
@@ -184,7 +195,7 @@ const QRScanner: React.FC = () => {
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)",
-              backgroundColor: "white",
+              backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
               borderRadius: "16px",
               boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
               padding: "30px",
@@ -208,25 +219,25 @@ const QRScanner: React.FC = () => {
               <h3 style={{
                 fontSize: "20px",
                 fontWeight: "700",
-                color: "#1f2937",
+                color: isDarkMode ? "#f9fafb" : "#1f2937",
                 marginBottom: "10px"
               }}>
                 ¡Asistencia Registrada!
               </h3>
-              <p style={{ fontSize: "14px", color: "#6b7280", marginBottom: "15px" }}>
+              <p style={{ fontSize: "14px", color: isDarkMode ? "#cbd5e1" : "#6b7280", marginBottom: "15px" }}>
                 Tu asistencia ha sido registrada exitosamente
               </p>
               <div style={{
-                backgroundColor: "#f3f4f6",
+                backgroundColor: isDarkMode ? "#334155" : "#f3f4f6",
                 padding: "15px",
                 borderRadius: "8px",
                 fontSize: "14px",
-                color: "#374151",
+                color: isDarkMode ? "#f9fafb" : "#374151",
                 fontFamily: "monospace"
               }}>
                 {scannedData}
               </div>
-              <div style={{ marginTop: "20px", fontSize: "12px", color: "#9ca3af" }}>
+              <div style={{ marginTop: "20px", fontSize: "12px", color: isDarkMode ? "#94a3b8" : "#9ca3af" }}>
                 26 de Septiembre, 2025 - 08:30 AM
               </div>
             </div>

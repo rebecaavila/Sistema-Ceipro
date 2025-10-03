@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
+import { ThemeProvider } from "../app/components/ThemeContext"; // Importa el provider aquí
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${inter.variable} antialiased`} style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
-        {children}
+        <ThemeProvider> {/* Envuelve toda la app */}
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
