@@ -61,13 +61,16 @@ export default function Sidebar() {
             backgroundColor: "#1d4ed8",
             border: "none",
             color: "#fff",
-            padding: "12px",
+            padding: "10px",
             borderRadius: "8px",
             cursor: "pointer",
-            fontSize: "20px",
+            fontSize: "18px",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            width: "44px",
+            height: "44px",
+            boxShadow: "0 2px 8px rgba(29, 78, 216, 0.3)",
           }}
           aria-label="Abrir menú"
         >
