@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FaHome,
-  FaUsers,
   FaQrcode,
   FaCamera,
   FaSignOutAlt,
@@ -26,10 +25,9 @@ export default function Sidebar() {
   const { isDarkMode, toggleTheme } = useTheme();
 
   const links = [
-    { name: "Inicio", href: "/dashboard", icon: <FaHome /> },
-    { name: "Personal", href: "/personal", icon: <FaUsers /> },
-    { name: "Generar QR", href: "/generar-qr", icon: <FaQrcode /> },
-    { name: "Escanear", href: "/escanear-qr", icon: <FaCamera /> },
+    { name: "Inicio", href: "/dashboard-personal", icon: <FaHome /> },
+    { name: "Asistencias", href: "/asistencias", icon: <FaQrcode /> },
+    { name: "Actividades", href: "/actividades", icon: <FaCamera /> },
   ];
 
   useEffect(() => {
@@ -258,7 +256,8 @@ export default function Sidebar() {
           {links.map((link) => {
             const isActive =
               pathname === link.href ||
-              (link.href === "/personal" && pathname.startsWith("/personal"));
+              (link.href === "/personal/asistencias" && pathname.startsWith("/personal/asistencias")) ||
+              (link.href === "/personal/actividades" && pathname.startsWith("/personal/actividades"));
 
             return (
               <Link
@@ -409,7 +408,7 @@ export default function Sidebar() {
                     Ronaldo Rojas
                   </p>
                   <p style={{ fontSize: "12px", color: isDarkMode ? "#cbd5e1" : "#6b7280", margin: 0, lineHeight: "1.2" }}>
-                    Administrador
+                    Personal
                   </p>
                 </div>
               </div>
