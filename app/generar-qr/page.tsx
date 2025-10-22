@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import { FaSearch, FaDownload, FaQrcode } from "react-icons/fa";
 import { useTheme } from "../components/ThemeContext";
 
+/*Simulación*/
 const empleadosData = [
   { id: 1, nombre: "Sofia Rodriguez", dni: "78901234", cargo: "Gerente de Ventas" },
   { id: 2, nombre: "Carlos Pérez", dni: "87654321", cargo: "Analista de Marketing" },

@@ -28,6 +28,9 @@ const asistenciasData: Record<string, Array<{ ingreso: string; salida: string; e
   ],
   "2024-10-07": [
     { ingreso: "08:00 AM", salida: "05:00 PM", estado: "Puntual", horas: 9 }
+  ],
+  "2024-09-22": [
+    { ingreso: "08:05 AM", salida: "05:15 PM", estado: "Puntual", horas: 9 }
   ]
 };
 
@@ -95,11 +98,22 @@ export default function AsistenciasPersonal() {
     } else if (nuevoMes < 0) {
       nuevoMes = 11; nuevoAno--;
     }
+    
+    // Actualizar el día seleccionado al nuevo mes manteniendo el mismo día
+    const diaActual = diaSeleccionado.getDate();
+    const ultimoDiaDelNuevoMes = new Date(nuevoAno, nuevoMes + 1, 0).getDate();
+    const diaValido = Math.min(diaActual, ultimoDiaDelNuevoMes);
+    
     setMesActual(nuevoMes);
     setAnoActual(nuevoAno);
+    setDiaSeleccionado(new Date(nuevoAno, nuevoMes, diaValido));
   };
 
   const seleccionarDia = (dia: number) => {
+    // Actualizar el día seleccionado para mostrar en el resumen
+    const fechaSeleccionada = new Date(anoActual, mesActual, dia);
+    setDiaSeleccionado(fechaSeleccionada);
+
     if (!rangoInicio || (rangoInicio && rangoFin)) {
       setRangoInicio(dia);
       setRangoFin(null);
@@ -254,39 +268,6 @@ export default function AsistenciasPersonal() {
                 flexWrap: isMobile ? "wrap" : "nowrap",
                 width: isMobile ? "100%" : "auto"
               }}>
-                {!mostrarCalendario && !isMobile && (
-                  <>
-                    <button
-                      style={{
-                        padding: "6px 12px",
-                        border: isDarkMode ? "1px solid #475569" : "1px solid #e5e7eb",
-                        borderRadius: "6px",
-                        backgroundColor: isDarkMode ? "#232a3a" : "#ffffff",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        color: subText
-                      }}
-                    >
-                      <FaChevronLeft />
-                    </button>
-                    <span style={{ fontSize: "14px", fontWeight: "500", color: headerText }}>
-                      {formatoRango}
-                    </span>
-                    <button
-                      style={{
-                        padding: "6px 12px",
-                        border: isDarkMode ? "1px solid #475569" : "1px solid #e5e7eb",
-                        borderRadius: "6px",
-                        backgroundColor: isDarkMode ? "#232a3a" : "#ffffff",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        color: subText
-                      }}
-                    >
-                      <FaChevronRight />
-                    </button>
-                  </>
-                )}
                 <button
                   onClick={() => setMostrarCalendario(!mostrarCalendario)}
                   style={{

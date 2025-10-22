@@ -267,19 +267,22 @@ export default function EmpleadoPerfil() {
   ];
 
   const getEstadoStyle = (estado: string) => {
+    const baseStyle = {
+      padding: "6px 14px",
+      borderRadius: "6px",
+      fontSize: "13px",
+      fontWeight: "600" as const,
+      display: "inline-block"
+    };
+
     const styles: { [key: string]: React.CSSProperties } = {
-      "Puntual": { backgroundColor: "#dcfce7", color: "#166534" },
-      "Tardanza": { backgroundColor: "#fef3c7", color: "#92400e" },
-      "Falta": { backgroundColor: "#fee2e2", color: "#991b1b" },
-      "Descanso": { backgroundColor: isDarkMode ? "#334155" : "#f3f4f6", color: isDarkMode ? "#94a3b8" : "#6b7280" }
+      "Puntual": { ...baseStyle, backgroundColor: isDarkMode ? "#166534" : "#dcfce7", color: isDarkMode ? "#dcfce7" : "#166534" },
+      "Tardanza": { ...baseStyle, backgroundColor: isDarkMode ? "#92400e" : "#fef3c7", color: isDarkMode ? "#fef3c7" : "#92400e" },
+      "Falta": { ...baseStyle, backgroundColor: isDarkMode ? "#991b1b" : "#fee2e2", color: isDarkMode ? "#fee2e2" : "#991b1b" },
+      "Descanso": { ...baseStyle, backgroundColor: isDarkMode ? "#334155" : "#f3f4f6", color: isDarkMode ? "#94a3b8" : "#6b7280" }
     };
-    return { 
-      ...(styles[estado] || {}), 
-      padding: "4px 12px", 
-      borderRadius: "12px", 
-      fontSize: "12px", 
-      fontWeight: "500" as const
-    };
+    
+    return styles[estado] || baseStyle;
   };
 
   const diasSemana = generateWeekDays(currentWeekStart);
@@ -618,83 +621,187 @@ export default function EmpleadoPerfil() {
                     {mockAsistencias.map((asistencia, index) => (
                       <div key={index} style={{
                         backgroundColor: isDarkMode ? "#0f172a" : "#f9fafb",
-                        borderRadius: "8px",
-                        padding: isMobile ? "16px" : "16px",
+                        borderRadius: "10px",
+                        padding: "20px",
                         border: `1px solid ${theme.border}`
                       }}>
-                        {isMobile ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <div>
-                                <div style={{ fontSize: "16px", fontWeight: "600", color: theme.text }}>
-                                  {asistencia.dia}
-                                </div>
-                                <div style={{ fontSize: "12px", color: theme.textSecondary }}>
-                                  {asistencia.fecha}
-                                </div>
-                              </div>
-                              <span style={getEstadoStyle(asistencia.estado)}>
-                                {asistencia.estado}
-                              </span>
+                        <div style={{
+                          display: "grid",
+                          gridTemplateColumns: isMobile ? "1fr" : "200px 1fr auto",
+                          gap: isMobile ? "16px" : "24px",
+                          alignItems: "center"
+                        }}>
+                          <div>
+                            <div style={{ 
+                              fontSize: "16px", 
+                              fontWeight: "600", 
+                              color: theme.text,
+                              marginBottom: "4px"
+                            }}>
+                              {asistencia.dia}
                             </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                              <div style={{ backgroundColor: theme.cardBg, padding: "8px", borderRadius: "6px", border: `1px solid ${theme.border}` }}>
-                                <div style={{ fontSize: "11px", color: theme.textSecondary, marginBottom: "2px" }}>Ingreso</div>
-                                <div style={{ fontSize: "16px", color: theme.text, fontWeight: "600" }}>{asistencia.ingreso}</div>
-                              </div>
-                              <div style={{ backgroundColor: theme.cardBg, padding: "8px", borderRadius: "6px", border: `1px solid ${theme.border}` }}>
-                                <div style={{ fontSize: "11px", color: theme.textSecondary, marginBottom: "2px" }}>Salida</div>
-                                <div style={{ fontSize: "16px", color: theme.text, fontWeight: "600" }}>{asistencia.salida}</div>
-                              </div>
-                            </div>
-                            <div style={{ backgroundColor: theme.cardBg, padding: "8px", borderRadius: "6px", border: `1px solid ${theme.border}`, textAlign: "center" }}>
-                              <div style={{ fontSize: "11px", color: theme.textSecondary, marginBottom: "2px" }}>Total Horas</div>
-                              <div style={{ fontSize: "18px", color: theme.primary, fontWeight: "700" }}>{asistencia.horas}h</div>
+                            <div style={{ 
+                              fontSize: "13px", 
+                              color: theme.textSecondary 
+                            }}>
+                              {asistencia.fecha}
                             </div>
                           </div>
-                        ) : (
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                              <div style={{ fontSize: "16px", fontWeight: "600", color: theme.text, minWidth: "90px" }}>
-                                {asistencia.dia}
-                              </div>
-                              <div style={{ fontSize: "13px", color: theme.textSecondary }}>
-                                {asistencia.fecha}
-                              </div>
-                            </div>
 
-                            <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <span style={{ fontSize: "12px", color: theme.textSecondary }}>Ingreso:</span>
-                                <span style={{ fontSize: "14px", color: theme.text, fontWeight: "500" }}>
+                          {!isMobile && (
+                            <div style={{
+                              display: "flex",
+                              gap: "28px",
+                              alignItems: "center"
+                            }}>
+                              <div>
+                                <div style={{ 
+                                  fontSize: "11px", 
+                                  color: theme.textSecondary,
+                                  marginBottom: "4px",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.5px",
+                                  fontWeight: "600"
+                                }}>
+                                  Ingreso
+                                </div>
+                                <div style={{ 
+                                  fontSize: "15px", 
+                                  color: theme.text,
+                                  fontWeight: "600"
+                                }}>
                                   {asistencia.ingreso}
-                                </span>
+                                </div>
                               </div>
-                              
-                              <span style={{ color: theme.border }}>-</span>
-                              
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <span style={{ fontSize: "12px", color: theme.textSecondary }}>Salida:</span>
-                                <span style={{ fontSize: "14px", color: theme.text, fontWeight: "500" }}>
+
+                              <div>
+                                <div style={{ 
+                                  fontSize: "11px", 
+                                  color: theme.textSecondary,
+                                  marginBottom: "4px",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.5px",
+                                  fontWeight: "600"
+                                }}>
+                                  Salida
+                                </div>
+                                <div style={{ 
+                                  fontSize: "15px", 
+                                  color: theme.text,
+                                  fontWeight: "600"
+                                }}>
                                   {asistencia.salida}
-                                </span>
+                                </div>
                               </div>
-                              
-                              <span style={{ color: theme.border }}>-</span>
-                              
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <span style={{ fontSize: "12px", color: theme.textSecondary }}>Horas:</span>
-                                <span style={{ fontSize: "14px", color: theme.text, fontWeight: "600" }}>
+
+                              <div>
+                                <div style={{ 
+                                  fontSize: "11px", 
+                                  color: theme.textSecondary,
+                                  marginBottom: "4px",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.5px",
+                                  fontWeight: "600"
+                                }}>
+                                  Horas
+                                </div>
+                                <div style={{ 
+                                  fontSize: "15px", 
+                                  color: theme.primary,
+                                  fontWeight: "700"
+                                }}>
                                   {asistencia.horas}h
-                                </span>
+                                </div>
                               </div>
-                              
-                              <span style={getEstadoStyle(asistencia.estado)}>
-                                {asistencia.estado}
-                              </span>
                             </div>
+                          )}
+
+                          {isMobile && (
+                            <div style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(3, 1fr)",
+                              gap: "12px"
+                            }}>
+                              <div style={{
+                                backgroundColor: theme.cardBg,
+                                padding: "10px",
+                                borderRadius: "8px",
+                                textAlign: "center"
+                              }}>
+                                <div style={{ 
+                                  fontSize: "10px", 
+                                  color: theme.textSecondary,
+                                  marginBottom: "4px",
+                                  textTransform: "uppercase",
+                                  fontWeight: "600"
+                                }}>
+                                  Ingreso
+                                </div>
+                                <div style={{ 
+                                  fontSize: "14px", 
+                                  color: theme.text,
+                                  fontWeight: "600"
+                                }}>
+                                  {asistencia.ingreso}
+                                </div>
+                              </div>
+
+                              <div style={{
+                                backgroundColor: theme.cardBg,
+                                padding: "10px",
+                                borderRadius: "8px",
+                                textAlign: "center"
+                              }}>
+                                <div style={{ 
+                                  fontSize: "10px", 
+                                  color: theme.textSecondary,
+                                  marginBottom: "4px",
+                                  textTransform: "uppercase",
+                                  fontWeight: "600"
+                                }}>
+                                  Salida
+                                </div>
+                                <div style={{ 
+                                  fontSize: "14px", 
+                                  color: theme.text,
+                                  fontWeight: "600"
+                                }}>
+                                  {asistencia.salida}
+                                </div>
+                              </div>
+
+                              <div style={{
+                                backgroundColor: theme.cardBg,
+                                padding: "10px",
+                                borderRadius: "8px",
+                                textAlign: "center"
+                              }}>
+                                <div style={{ 
+                                  fontSize: "10px", 
+                                  color: theme.textSecondary,
+                                  marginBottom: "4px",
+                                  textTransform: "uppercase",
+                                  fontWeight: "600"
+                                }}>
+                                  Horas
+                                </div>
+                                <div style={{ 
+                                  fontSize: "14px", 
+                                  color: theme.primary,
+                                  fontWeight: "700"
+                                }}>
+                                  {asistencia.horas}h
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          <div style={{ display: "flex", justifyContent: isMobile ? "center" : "flex-end" }}>
+                            <span style={getEstadoStyle(asistencia.estado)}>
+                              {asistencia.estado}
+                            </span>
                           </div>
-                        )}
+                        </div>
                       </div>
                     ))}
                   </div>

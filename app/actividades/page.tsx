@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { FaPlus, FaTimes, FaChevronLeft, FaChevronRight } from "react-icons/fa";
-
-// Importar desde tus componentes reales
 import { useTheme } from "../components/ThemeContext";
 import SidebarEmpleado from "../components/Sidebar-personal";
 
